@@ -16,8 +16,8 @@ DATABASE_URL = "sqlite:///./database.db"
 
 # --- 業務規則 ---
 MAX_BORROW_LIMIT = 5          # 每位使用者同時借杯上限
-BORROW_DAYS_LIMIT = 14        # 借杯歸還期限（天）
-OVERDUE_REMINDER_DAYS = 3     # 到期前幾天開始提醒
+BORROW_DAYS_LIMIT = 3         # 借杯歸還期限（天）
+OVERDUE_REMINDER_DAYS = 1     # 到期前幾天開始提醒
 
 # --- SendGrid Email ---
 SENDGRID_API_KEY = "YOUR_SENDGRID_API_KEY"

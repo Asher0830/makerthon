@@ -58,7 +58,8 @@ def check_and_send_overdue_reminders():
     
     db = SessionLocal()
     try:
-        now = datetime.now(timezone.utc)
+        # 使用 GMT+8 (台北時間)
+        now = datetime.now(timezone(timedelta(hours=8)))
         reminder_threshold = now + timedelta(days=OVERDUE_REMINDER_DAYS)
 
         # 找尋狀態為 ongoing 或 overdue，且距離 due_date 不到 3 天的紀錄
@@ -83,6 +84,13 @@ def check_and_send_overdue_reminders():
                 if user_to_punish:
                     user_to_punish.points = max(0, user_to_punish.points - 10)
                     deduction_count += 1
+                    
+                    # 自動停權：如果逾期超過 3 天
+                    suspension_threshold = record.due_date + timedelta(days=3)
+                    if now > suspension_threshold:
+                        if user_to_punish.is_suspended == 0:
+                            user_to_punish.is_suspended = 1
+                            logger.info(f"🚫 使用者 {user_to_punish.email} 因逾期超過 3 天被自動停權")
             
             user = db.query(User).filter(User.uuid == record.uuid).first()
             if user and user.email:

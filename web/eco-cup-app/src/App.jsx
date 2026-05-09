@@ -66,19 +66,28 @@ function AppInner() {
     <BrowserRouter>
       <div className="app-container">
         {/* Top-right controls */}
-        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: '8px' }}>
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 1000, display: 'flex', gap: '10px' }}>
           <button
-            className="theme-toggle"
             onClick={toggleLang}
-            style={{ position: 'static', fontSize: '0.7rem', fontWeight: 700 }}
+            style={{ 
+              background: 'var(--surface)', border: '1px solid rgba(128,128,128,0.2)', 
+              color: 'var(--text)', padding: '8px 12px', borderRadius: '12px', 
+              fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)', backdropFilter: 'blur(10px)',
+              transition: 'all 0.2s', opacity: 0.95
+            }}
           >
-            {lang === 'zh-TW' ? 'EN' : '中'}
+            {lang === 'zh-TW' ? 'EN' : '繁中'}
           </button>
           <button 
-            className="theme-toggle"
             onClick={() => setDarkMode(!darkMode)}
-            aria-label="Toggle dark mode"
-            style={{ position: 'static' }}
+            style={{ 
+              background: 'var(--surface)', border: '1px solid rgba(128,128,128,0.2)', 
+              color: 'var(--text)', padding: '8px 12px', borderRadius: '12px', 
+              fontSize: '0.75rem', cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)', backdropFilter: 'blur(10px)',
+              transition: 'all 0.2s', opacity: 0.95
+            }}
           >
             {darkMode ? '☀️' : '🌙'}
           </button>

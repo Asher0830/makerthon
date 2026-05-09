@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Home, User, Clock, QrCode, Gift, Navigation, Coffee, Bell } from 'lucide-react';
+import { Home, User, Clock, QrCode, Gift, Navigation, Coffee, Bell, ChevronRight, History, LogOut, Activity, Store, MapPin } from 'lucide-react';
 import Scanner from '../components/Scanner';
 import { useI18n } from '../i18n';
+import cupImg from '../assets/cup.png';
 
 export default function Dashboard({ user, onLogout }) {
   const { t } = useI18n();
@@ -11,51 +12,79 @@ export default function Dashboard({ user, onLogout }) {
 
   const [myCups, setMyCups] = useState([]);
   const [history, setHistory] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [selectedStoreIdx, setSelectedStoreIdx] = useState(0);
+  const [wheelRotation, setWheelRotation] = useState(0);
   const [userStats, setUserStats] = useState({ points: 0, total_borrow_count: 0 });
   const [loadingCups, setLoadingCups] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [loadingStores, setLoadingStores] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
 
   // Pull to refresh state
   const [pullState, setPullState] = useState('idle'); // idle | pulling | ready | refreshing
   const [pullDistance, setPullDistance] = useState(0);
   const contentRef = useRef(null);
   const touchStartY = useRef(0);
+  const dialTouchStartX = useRef(0);
+  const isDialSwiping = useRef(false);
 
   const API_BASE = '/api';
 
   useEffect(() => {
-    fetchCups();
-    fetchHistory();
-    fetchStats();
+    fetchData();
+    // Get user location
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const loc = {
+          lat: Math.round(position.coords.latitude * 10000),
+          lng: Math.round(position.coords.longitude * 100000)
+        };
+        setUserLocation(loc);
+        // We re-fetch or re-trigger to sort stores by distance
+        fetchStores();
+      });
+    }
     // Check notification permission
     if ('Notification' in window && Notification.permission === 'granted') {
       setNotifEnabled(true);
     }
   }, []);
 
-  // Schedule push notifications for cups nearing due date
-  useEffect(() => {
-    if (!notifEnabled || myCups.length === 0) return;
-    
-    myCups.forEach(cup => {
-      if (cup.days_remaining <= 1 && !cup.is_overdue) {
-        // Show notification for cups due tomorrow
-        new Notification('🥤 Eco-Cup 還杯提醒', {
-          body: `杯子 ${cup.cup_id} 明天到期，請盡速歸還！`,
-          icon: '🥤',
-          tag: `cup-${cup.cup_id}`, // Prevent duplicate notifications
-        });
+  const fetchData = async () => {
+    await Promise.all([fetchCups(), fetchHistory(), fetchStats(), fetchStores()]);
+  };
+
+  const fetchStores = async () => {
+    setLoadingStores(true);
+    try {
+      const response = await fetch(`${API_BASE}/user/stores`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+      if (response.ok) {
+        let data = await response.json();
+        if (data && data.length > 0) {
+          // If we have location, sort by distance
+          if (userLocation) {
+            data.sort((a, b) => {
+              const d1 = Math.pow((a.latitude - userLocation.lat) / 10000 * 111, 2) + Math.pow((a.longitude - userLocation.lng) / 100000 * 101, 2);
+              const d2 = Math.pow((b.latitude - userLocation.lat) / 10000 * 111, 2) + Math.pow((b.longitude - userLocation.lng) / 100000 * 101, 2);
+              return d1 - d2;
+            });
+          }
+          // Keep only top 6 to avoid overlapping on the wheel
+          setStores(data.slice(0, 6));
+        } else {
+          setStores([]);
+        }
       }
-      if (cup.is_overdue) {
-        new Notification('⚠️ Eco-Cup 逾期通知', {
-          body: `杯子 ${cup.cup_id} 已逾期，請立即歸還！`,
-          icon: '⚠️',
-          tag: `cup-overdue-${cup.cup_id}`,
-        });
-      }
-    });
-  }, [myCups, notifEnabled]);
+    } catch (err) {
+      console.error("Failed to fetch stores:", err);
+    } finally {
+      setLoadingStores(false);
+    }
+  };
 
   const requestNotification = async () => {
     if (!('Notification' in window)) {
@@ -98,7 +127,7 @@ export default function Dashboard({ user, onLogout }) {
     } catch (err) {
       console.error("Failed to fetch cups:", err);
     } finally {
-      setLoadingCups(false);
+      setTimeout(() => setLoadingCups(false), 500); // Subtle delay for smoother transition
     }
   };
 
@@ -115,7 +144,7 @@ export default function Dashboard({ user, onLogout }) {
     } catch (err) {
       console.error("Failed to fetch history:", err);
     } finally {
-      setLoadingHistory(false);
+      setTimeout(() => setLoadingHistory(false), 500);
     }
   };
 
@@ -141,7 +170,7 @@ export default function Dashboard({ user, onLogout }) {
     if (pullState === 'ready') {
       setPullState('refreshing');
       setPullDistance(40);
-      await Promise.all([fetchCups(), fetchHistory()]);
+      await fetchData();
       setPullState('idle');
       setPullDistance(0);
     } else {
@@ -149,6 +178,36 @@ export default function Dashboard({ user, onLogout }) {
       setPullDistance(0);
     }
   }, [pullState]);
+
+  const handleDialTouchStart = (e) => {
+    dialTouchStartX.current = e.touches[0].clientX;
+    isDialSwiping.current = true;
+  };
+
+  const handleDialTouchMove = (e) => {
+    if (!isDialSwiping.current) return;
+    const diffX = e.touches[0].clientX - dialTouchStartX.current;
+    if (Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        rotateWheel(-1);
+      } else {
+        rotateWheel(1);
+      }
+      isDialSwiping.current = false;
+    }
+  };
+
+  const rotateWheel = (direction) => {
+    if (stores.length === 0) return;
+    const angle = 360 / stores.length;
+    const newIdx = (selectedStoreIdx + direction + stores.length) % stores.length;
+    setSelectedStoreIdx(newIdx);
+    setWheelRotation(prev => prev - direction * angle);
+  };
+
+  const handleDialTouchEnd = () => {
+    isDialSwiping.current = false;
+  };
 
   const handleScanSuccess = async (decodedText) => {
     setIsScanning(false);
@@ -178,7 +237,7 @@ export default function Dashboard({ user, onLogout }) {
       }
 
       alert(t('scan_member_ok'));
-      setTimeout(() => { fetchCups(); fetchHistory(); }, 2000);
+      setTimeout(() => fetchData(), 2000);
     } catch (error) {
       alert(`${t('scan_fail')}: ${error.message}`);
     } finally {
@@ -189,23 +248,94 @@ export default function Dashboard({ user, onLogout }) {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
+
+  const getUserRank = (count) => {
+    if (count >= 100) return { name: '地球守護者', color: '#7C3AED', bg: '#F5F3FF' };
+    if (count >= 50) return { name: '綠能大師', color: '#059669', bg: '#ECFDF5' };
+    if (count >= 25) return { name: '不塑之客', color: '#D97706', bg: '#FFFBEB' };
+    if (count >= 10) return { name: '低碳騎士', color: '#4B5563', bg: '#F3F4F6' };
+    if (count >= 3) return { name: '減塑學徒', color: '#92400E', bg: '#FFF7ED' };
+    return { name: '環保新芽', color: '#166534', bg: '#F0FDF4' };
+  };
+
+  const rank = getUserRank(userStats.total_borrow_count);
+
+  const getStoreMockData = (sid) => {
+    const mocks = {
+      "S_TP_001": { intro: "座落於信義商圈，以極簡工業風打造，是繁華都會中的綠色綠洲。", hours: "08:00 - 22:00" },
+      "S_TP_002": { intro: "中山捷運站旁的文青首選，充滿人文氣息，適合慢活品味咖啡。", hours: "09:00 - 21:00" },
+      "S_TP_003": { intro: "正對大安森林公園，享受森呼吸的同時，也能實踐永續生活。", hours: "07:30 - 20:00" },
+      "S_TP_004": { intro: "松菸文創園區內的創意聚落，將環保與美學完美融合的體驗空間。", hours: "10:00 - 22:00" },
+      "S_TP_005": { intro: "西門鬧區中的寧靜一角，提供快捷且優質的租借服務，行動派的最愛。", hours: "11:00 - 23:00" },
+      "S_TP_006": { intro: "101 高樓下的環保前哨站，向國際遊客展現台灣的永續力。", hours: "09:00 - 21:30" },
+      "S_TP_007": { intro: "台大學區的活力據點，支持學生與教職員的無塑每日生活。", hours: "08:00 - 19:00" },
+      "S_TP_008": { intro: "誠品南西的精緻選店，讓閱讀與環保杯成為您最有質感的配件。", hours: "11:00 - 22:00" },
+      "S_TP_009": { intro: "公館台大商圈的補給站，伴隨書香與咖啡香的環保新選擇。", hours: "08:00 - 21:00" },
+      "S_TP_010": { intro: "南港科技城中的綠能驛站，為通勤族提供最便利的借還體驗。", hours: "07:30 - 22:00" },
+      "S_TP_011": { intro: "內科上班族的提神夥伴，瑞光路上的環保實踐基地。", hours: "08:00 - 20:00" },
+      "S_TP_012": { intro: "板橋府中的在地好鄰居，連結新北生活圈的永續網絡。", hours: "10:00 - 22:00" },
+      "S_TP_013": { intro: "天母異國風情中的慢活空間，推廣優質減塑生活的新標竿。", hours: "09:00 - 21:00" },
+      "S_TP_014": { intro: "松山機場的旅客轉運站，讓環保杯跟隨您的旅行足跡。", hours: "06:00 - 22:00" },
+      "S_TP_015": { intro: "北投溫泉鄉的悠閒據點，在放鬆身心的同時也為地球盡一份心。", hours: "09:00 - 18:00" },
+    };
+    return mocks[sid] || { intro: "友善地球的夥伴門市，與您一起守護環境。", hours: "09:00 - 21:00" };
+  };
+
+  const isStoreOpen = (hoursStr) => {
+    const [start, end] = hoursStr.split(' - ');
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    const startTime = startH * 60 + startM;
+    const endTime = endH * 60 + endM;
+    return currentTime >= startTime && currentTime < endTime;
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return "晚安，還沒睡嗎？";
+    if (hour < 12) return t('hello', { name: user.name.split(' ')[0] });
+    if (hour < 18) return "午安！喝杯咖啡吧";
+    return "晚安！辛苦了一天";
+  };
+
+  const calculateDistance = (sLat, sLng) => {
+    if (!userLocation) return null;
+    // Simple Euclidean distance for small distances (Taipei)
+    // Degrees to meters (approx)
+    const dLat = (sLat - userLocation.lat) / 10000;
+    const dLng = (sLng - userLocation.lng) / 100000;
+    const distanceKm = Math.sqrt(Math.pow(dLat * 111, 2) + Math.pow(dLng * 101, 2));
+    if (distanceKm < 1) return `${Math.round(distanceKm * 1000)}m`;
+    return `${distanceKm.toFixed(1)}km`;
+  };
+
+  // Skeleton UI for loading
+  const SkeletonCard = () => (
+    <div className="card" style={{ height: '100px' }}>
+      <div className="skeleton" style={{ height: '20px', width: '60%', marginBottom: '12px' }}></div>
+      <div className="skeleton" style={{ height: '14px', width: '40%', marginBottom: '8px' }}></div>
+      <div className="skeleton" style={{ height: '14px', width: '30%' }}></div>
+    </div>
+  );
 
   return (
     <>
       <div 
-        className="content-area" 
+        className="content-area fade-in" 
         ref={contentRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        style={{ paddingBottom: '100px', transform: `translateY(${pullDistance}px)`, transition: pullState === 'idle' ? 'transform 0.3s ease' : 'none' }}
+        style={{ transform: `translateY(${pullDistance}px)`, transition: pullState === 'idle' ? 'transform 0.3s ease' : 'none' }}
       >
         {/* Pull to Refresh Indicator */}
         <div style={{
           position: 'absolute', top: -40, left: 0, right: 0,
-          textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)',
+          textAlign: 'center', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600,
           opacity: pullDistance > 10 ? 1 : 0,
           transition: 'opacity 0.2s'
         }}>
@@ -213,181 +343,312 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         {/* Header */}
-        <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              {activeTab === 'home' ? t('home') : t('member_center')}
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+              {activeTab === 'home' ? 'Hooray!' : t('personal_account')}
             </p>
-            <h1 style={{ margin: 0 }}>
-              {activeTab === 'home' ? `${t('hello')}${user.name}` : t('personal_account')}
+            <h1 style={{ margin: 0, fontSize: '1.75rem' }}>
+              {activeTab === 'home' ? getGreeting() : '我的設定'}
             </h1>
+            {activeTab === 'home' && (
+              <div style={{ display: 'inline-flex', marginTop: '4px', background: rank.bg, color: rank.color, padding: '2px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, alignItems: 'center', gap: '4px', border: `1px solid ${rank.color}22` }}>
+                {rank.name}
+              </div>
+            )}
           </div>
-          {activeTab === 'home' && (
-            <div style={{ background: 'var(--warning-soft)', color: 'var(--warning)', padding: '6px 12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ background: '#FEF3C7', color: '#B45309', padding: '8px 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.9rem', boxShadow: '0 4px 10px rgba(180, 83, 9, 0.1)' }}>
               <Gift size={18} />
-              <span>{userStats.points} {t('points')}</span>
+              <span>{userStats.points}</span>
             </div>
-          )}
+          </div>
         </header>
 
         {activeTab === 'home' && (
-          <>
-            {/* Ad Banner */}
-            <div className="ad-banner">
-              <div className="ad-banner-icon"><Gift size={32} /></div>
-              <div className="ad-banner-title">{t('ad_title')}</div>
-              <div className="ad-banner-subtitle">{t('ad_subtitle')}</div>
+          <div className="fade-in">
+            {/* Featured Ad - Premium Look */}
+            <div className="card" style={{ background: 'linear-gradient(135deg, #606C38, #283618)', color: 'white', padding: '24px', position: 'relative', overflow: 'hidden', border: 'none' }}>
+              <div style={{ position: 'relative', zIndex: 1, maxWidth: '65%' }}>
+                <h3 style={{ color: 'white', fontSize: '1.25rem', marginBottom: '8px' }}>{t('ad_title')}</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>{t('ad_subtitle')}</p>
+              </div>
+              <img src={cupImg} style={{ position: 'absolute', right: '-20px', bottom: '-20px', width: '160px', height: '160px', objectFit: 'contain', opacity: 0.8, transform: 'rotate(-10deg)' }} alt="Eco Cup" />
             </div>
 
-            {/* Notification Toggle */}
+            {/* Notification Toggle - Soft Warning */}
             {!notifEnabled && (
-              <button 
+              <div 
                 onClick={requestNotification}
                 className="card" 
-                style={{ width: '100%', cursor: 'pointer', border: '1px solid var(--primary-soft)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.875rem' }}
+                style={{ background: '#FFF7ED', border: '1px dashed #FDBA74', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
               >
-                <Bell size={18} /> 開啟到期推播通知
-              </button>
+                <div style={{ background: '#FDBA74', color: 'white', padding: '8px', borderRadius: '10px' }}>
+                  <Bell size={18} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>開啟提醒</div>
+                  <div style={{ fontSize: '0.75rem', color: '#9A3412' }}>怕忘記還杯嗎？讓我們提醒你吧！</div>
+                </div>
+                <ChevronRight size={18} color="#9A3412" />
+              </div>
             )}
 
-            {/* My Cups */}
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={20} color="var(--primary)" />
+            {/* My Cups Section */}
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Coffee size={20} color="var(--primary)" />
               {t('my_cups')}
             </h2>
+            
             {loadingCups ? (
-              <div className="card" style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>{t('loading')}</div>
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
             ) : myCups.length > 0 ? (
               myCups.map(cup => {
-                const isWarning = cup.days_remaining <= 3 && cup.days_remaining > 0;
+                const isWarning = cup.days_remaining <= 1 && cup.days_remaining > 0;
                 const statusClass = cup.is_overdue ? 'danger' : (isWarning ? 'warning' : 'success');
                 const statusText = cup.is_overdue ? t('overdue') : t('days_remaining', { n: cup.days_remaining });
                 return (
-                  <div className="card" key={cup.cup_id} style={{ borderLeft: `4px solid var(--${statusClass})`}}>
-                    <div className="card-header">
-                      <span style={{ fontWeight: 600, fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Coffee size={16} /> {cup.cup_id}
-                      </span>
-                      <span className={`badge badge-${statusClass}`}>{statusText}</span>
+                  <div className="card" key={cup.cup_id} style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    <div style={{ background: '#F3F4F6', padding: '12px', borderRadius: '14px' }}>
+                      <Coffee size={32} color="var(--primary)" />
                     </div>
-                    <div style={{ marginTop: '8px' }}>
-                      <p style={{ fontSize: '0.75rem', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Navigation size={12} /> {t('borrow_store')}: {cup.borrow_store_name || cup.borrow_store_id || t('unknown')}
-                      </p>
-                      <p style={{ fontSize: '0.75rem', margin: 0 }}>{t('borrow_time')}: {formatDate(cup.borrow_time)}</p>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '1rem' }}>{cup.cup_id}</span>
+                        <span className={`badge badge-${statusClass}`}>{statusText}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <Navigation size={12} /> {cup.borrow_store_name || cup.borrow_store_id || t('unknown')}
+                      </div>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="card" style={{ textAlign: 'center', padding: '32px 16px' }}>
-                <p>{t('no_cups')}</p>
+              <div className="card" style={{ textAlign: 'center', padding: '40px 20px', background: 'transparent', border: '2px dashed rgba(0,0,0,0.05)', boxShadow: 'none' }}>
+                <Coffee size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: '12px' }} />
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>{t('no_cups')}</p>
               </div>
             )}
-          </>
+
+            {/* Store Dial Section */}
+            <h2 style={{ fontSize: '1.25rem', marginTop: '32px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Store size={20} color="var(--primary)" />
+              尋找夥伴門市
+            </h2>
+            <div 
+              className="store-dial-container"
+              onTouchStart={handleDialTouchStart}
+              onTouchMove={handleDialTouchMove}
+              onTouchEnd={handleDialTouchEnd}
+            >
+              {/* Rotation Guidance Arrows */}
+              <div style={{ position: 'absolute', left: '10px', top: '100px', zIndex: 10, color: 'var(--text-muted)', opacity: 0.3 }}>
+                <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
+              </div>
+              <div style={{ position: 'absolute', right: '10px', top: '100px', zIndex: 10, color: 'var(--text-muted)', opacity: 0.3 }}>
+                <ChevronRight size={24} />
+              </div>
+
+              <div className="dial-wheel" style={{ transform: `translateX(-50%) rotate(${wheelRotation}deg) translateZ(0)` }}>
+                {stores.map((s, idx) => {
+                  const angle = 360 / stores.length;
+                  const rotation = idx * angle;
+                  return (
+                    <div 
+                      key={s.store_id} 
+                      className={`dial-item ${selectedStoreIdx === idx ? 'active' : ''}`}
+                      style={{ '--rotation': `${rotation}deg`, transform: `rotate(${rotation}deg) translateZ(0)` }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Calculate shortest rotation path
+                        const diff = idx - (selectedStoreIdx % stores.length + stores.length) % stores.length;
+                        let move = diff;
+                        if (move > stores.length / 2) move -= stores.length;
+                        if (move < -stores.length / 2) move += stores.length;
+                        rotateWheel(move);
+                      }}
+                    >
+                      <div className="dial-item-inner" style={{ transform: `rotate(${-(rotation + wheelRotation)}deg)` }}>
+                        <Store size={22} />
+                        <span style={{ fontSize: '0.5rem', marginTop: '2px', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textAlign: 'center' }}>
+                          {s.name.replace('Eco-Cup ', '')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {stores.length > 0 && (
+              <>
+                <div className="store-info-card fade-in" key={stores[selectedStoreIdx].store_id}>
+                   <div style={{ marginBottom: '12px' }}>
+                      <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 800 }}>{stores[selectedStoreIdx].name}</h3>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                        {getStoreMockData(stores[selectedStoreIdx].store_id).intro}
+                      </p>
+                   </div>
+
+                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
+                      <div style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         <Navigation size={12} /> {calculateDistance(stores[selectedStoreIdx].latitude, stores[selectedStoreIdx].longitude) || '定位中'}
+                      </div>
+                      <div style={{ background: '#F5F3FF', color: '#7C3AED', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #EDE9FE', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         <Clock size={12} /> {getStoreMockData(stores[selectedStoreIdx].store_id).hours}
+                      </div>
+                      {isStoreOpen(getStoreMockData(stores[selectedStoreIdx].store_id).hours) ? (
+                        <div style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #DCFCE7' }}>
+                           {t('status')}: {t('normal')}
+                        </div>
+                      ) : (
+                        <div style={{ background: '#FEF2F2', color: '#991B1B', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #FEE2E2' }}>
+                           {t('status')}: 休息中
+                        </div>
+                      )}
+                   </div>
+
+                   <div style={{ background: 'rgba(0,0,0,0.02)', padding: '12px 16px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'center', justifyContent: 'center' }}>
+                      <MapPin size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all', lineHeight: 1.4 }}>
+                        {stores[selectedStoreIdx].real_local}
+                      </div>
+                   </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {activeTab === 'member' && (
-          <>
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                <User size={32} />
+          <div className="fade-in">
+            {/* Profile Header */}
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px', background: 'var(--surface)' }}>
+              <div style={{ width: '70px', height: '70px', borderRadius: '24px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', boxShadow: 'var(--shadow-md)' }}>
+                <User size={36} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{user.name}</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{user.name}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>{user.email}</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <span className="badge" style={{ background: rank.bg, color: rank.color, border: `1px solid ${rank.color}33`, display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'none', letterSpacing: 'normal' }}>
+                    {rank.name}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* User Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginTop: '12px' }}>
-              <div className="card" style={{ padding: '16px', marginBottom: 0, textAlign: 'center', borderBottom: '3px solid var(--warning)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '4px' }}>{t('points_earned')}</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--warning)' }}>{userStats.points}</div>
+            {/* Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '32px' }}>
+              <div className="card" style={{ padding: '20px', textAlign: 'center', border: 'none' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px' }}>{t('points_earned')}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--secondary)' }}>{userStats.points}</div>
               </div>
-              <div className="card" style={{ padding: '16px', marginBottom: 0, textAlign: 'center', borderBottom: '3px solid var(--primary)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '4px' }}>累積借用</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>{userStats.total_borrow_count}</div>
+              <div className="card" style={{ padding: '20px', textAlign: 'center', border: 'none' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px' }}>累計環保次數</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{userStats.total_borrow_count}</div>
               </div>
             </div>
 
-            {/* History */}
-            <h2 style={{ marginTop: '24px' }}>{t('borrow_history')}</h2>
+            {/* History List */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={20} color="var(--primary)" />
+                {t('borrow_history')}
+              </h2>
+            </div>
+
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               {loadingHistory ? (
-                <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>{t('loading')}</div>
+                <div style={{ padding: '20px' }}>
+                  <div className="skeleton" style={{ height: '60px', width: '100%', marginBottom: '12px' }}></div>
+                  <div className="skeleton" style={{ height: '60px', width: '100%' }}></div>
+                </div>
               ) : history.filter(r => r.state === 'returned').length > 0 ? (
                 history.filter(r => r.state === 'returned').map((record, index) => {
-                  const filteredHistory = history.filter(r => r.state === 'returned');
+                  const filtered = history.filter(r => r.state === 'returned');
                   return (
-                    <div key={record.serial_num} style={{ padding: '16px', borderBottom: index !== filteredHistory.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text)' }}>{t('cup_id')}: {record.cup_id}</span>
-                        <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.8rem' }}>{t('returned')}</div>
+                    <div key={record.serial_num} style={{ padding: '16px 20px', borderBottom: index !== filtered.length - 1 ? '1px solid rgba(0,0,0,0.03)' : 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{record.cup_id}</span>
+                        <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem' }}>{t('returned')}</span>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.5 }}></div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{t('borrow_from')}：{record.borrow_store_name || record.borrow_store_id}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDate(record.borrow_time)}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{t('return_to')}：{record.return_store_name || record.return_store_id}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDate(record.return_time)}</div>
-                          </div>
-                        </div>
+                      <div style={{ borderLeft: '2px dashed #E5E7EB', marginLeft: '6px', paddingLeft: '16px', position: 'relative' }}>
+                         <div style={{ marginBottom: '12px' }}>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{record.borrow_store_name || record.borrow_store_id}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(record.borrow_time)}</div>
+                            <div style={{ position: 'absolute', left: '-5px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', background: '#E5E7EB' }}></div>
+                         </div>
+                         <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{record.return_store_name || record.return_store_id}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(record.return_time)}</div>
+                            <div style={{ position: 'absolute', left: '-5px', bottom: '4px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></div>
+                         </div>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>{t('no_history')}</div>
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                  {t('no_history')}
+                </div>
               )}
             </div>
 
-            {/* Sponsor Button */}
+            {/* Sponsor - Life Style Action */}
             <a 
               href="https://youtu.be/dQw4w9WgXcQ?si=6Y9NjSGbY1CJXpCq" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="card"
-              style={{ width: '100%', marginTop: '24px', padding: '16px', border: '1px solid var(--warning-soft)', background: 'var(--warning-soft)', color: 'var(--warning)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
+              className="btn"
+              style={{ width: '100%', marginTop: '32px', padding: '16px', background: 'var(--accent)', color: 'var(--text)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', border: 'none' }}
             >
               <Gift size={20} /> {t('sponsor')}
             </a>
 
-            {/* Logout */}
-            <button className="card" onClick={onLogout}
-              style={{ width: '100%', marginTop: '12px', padding: '16px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
+            {/* Logout - Soft Action */}
+            <button 
+              onClick={onLogout}
+              className="btn"
+              style={{ width: '100%', marginTop: '12px', background: 'transparent', color: '#991B1B', border: '1px solid #FEE2E2', fontSize: '0.9rem' }}
             >
-              {t('logout')}
+              <LogOut size={18} /> {t('logout')}
             </button>
-          </>
+          </div>
         )}
         
         {scanMessage && (
-          <div style={{ position: 'fixed', top: '16px', left: '16px', right: '16px', background: 'var(--text)', color: 'white', padding: '16px', borderRadius: '12px', textAlign: 'center', zIndex: 100 }}>
+          <div style={{ position: 'fixed', top: '24px', left: '24px', right: '24px', background: 'var(--primary)', color: 'white', padding: '16px 24px', borderRadius: '16px', textAlign: 'center', zIndex: 1000, boxShadow: 'var(--shadow-lg)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <Activity size={20} className="spin" />
             {scanMessage}
           </div>
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="bottom-bar">
+      {/* Floating Action Bar - Life Style Design */}
+      <nav className="nav-bar">
         <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
-          <Home size={24} />
+          <Home size={22} />
           <span>{t('nav_home')}</span>
         </div>
-        <button className="scan-fab" onClick={() => setIsScanning(true)}>
-          <QrCode size={28} />
-        </button>
-        <div style={{ width: '64px' }}></div>
+        
+        {/* Main Scan Button */}
+        <div style={{ position: 'relative', top: '-30px' }}>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setIsScanning(true)}
+            style={{ width: '64px', height: '64px', borderRadius: '22px', padding: 0, boxShadow: '0 10px 25px rgba(96, 108, 56, 0.4)' }}
+          >
+            <QrCode size={30} />
+          </button>
+        </div>
+
         <div className={`nav-item ${activeTab === 'member' ? 'active' : ''}`} onClick={() => setActiveTab('member')}>
-          <User size={24} />
+          <User size={22} />
           <span>{t('nav_member')}</span>
         </div>
       </nav>
@@ -398,3 +659,5 @@ export default function Dashboard({ user, onLogout }) {
     </>
   );
 }
+
+

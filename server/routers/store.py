@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone, time
+from datetime import datetime, timezone, time, timedelta
 
 from database import get_db
 from models import Store, Record, Cup
@@ -74,9 +74,10 @@ def store_dashboard(
     db: Session = Depends(get_db),
 ):
     """取得本店今日借出/歸還數量與庫存。"""
+    tz_taipei = timezone(timedelta(hours=8))
     today_start = datetime.combine(
-        datetime.now(timezone.utc).date(), time.min
-    ).replace(tzinfo=timezone.utc)
+        datetime.now(tz_taipei).date(), time.min
+    ).replace(tzinfo=tz_taipei)
 
     today_borrowed = (
         db.query(Record)
@@ -104,7 +105,7 @@ def store_dashboard(
         .filter(
             Record.borrow_store_id == store_id,
             Record.state.in_(["ongoing", "overdue"]),
-            Record.due_date < datetime.now(timezone.utc),
+            Record.due_date < datetime.now(tz_taipei),
         )
         .count()
     )

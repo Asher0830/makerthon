@@ -160,6 +160,22 @@ class AdminGlobalStatsResponse(BaseModel):
     today_borrow: int
     today_return: int
 
+class AdminOverdueRecordItem(BaseModel):
+    serial_num: str
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    cup_id: str
+    borrow_store_name: Optional[str] = None
+    borrow_time: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    state: str
+    is_suspended: int
+    user_uuid: str
+
+class AdminOverdueListResponse(BaseModel):
+    total: int
+    overdue_records: List[AdminOverdueRecordItem]
+
 # ── Admin CRUD Schemas ────────────────────────────────────────────────────────
 
 class StoreCreateRequest(BaseModel):
@@ -186,3 +202,19 @@ class CupUpdateRequest(BaseModel):
 class UserUpdateRequest(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
+
+class UserSuspensionRequest(BaseModel):
+    is_suspended: int  # 0 or 1
+
+class AdminLogItem(BaseModel):
+    id: int
+    timestamp: datetime
+    level: str
+    category: str
+    event: str
+    details: str
+    operator_id: Optional[str] = None
+
+class AdminLogListResponse(BaseModel):
+    total: int
+    logs: List[AdminLogItem]

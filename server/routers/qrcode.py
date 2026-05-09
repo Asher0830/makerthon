@@ -7,6 +7,9 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
+# 台北時區 (GMT+8)
+TAIPEI_TZ = timezone(timedelta(hours=8))
+
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
@@ -15,6 +18,7 @@ from models import Cup, Record, User, Store
 from schemas import QRCodeScanRequest, QRCodeScanResponse
 from auth import get_current_user_id
 from websocket.scanner import scanner_manager
+from utils.logger import log_event
 from config import MAX_BORROW_LIMIT, BORROW_DAYS_LIMIT
 
 logger = logging.getLogger("qrcode_router")
@@ -134,7 +138,11 @@ def _handle_borrow(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
     if not user:
         return {"status": "error", "message": f"找不到使用者: {user_uuid}"}
 
-    # 2. 檢查借杯上限
+    # 2. 檢查使用者狀態
+    if user.is_suspended == 1:
+        return {"status": "error", "message": "帳號已被停權，請先歸還逾期杯子或聯繫客服"}
+
+    # 檢查借杯上限
     if user.current_borrow_count >= MAX_BORROW_LIMIT:
         return {"status": "error", "message": f"已達借杯上限 ({MAX_BORROW_LIMIT})"}
 
@@ -145,7 +153,7 @@ def _handle_borrow(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
     if cup.state == "borrowed":
         return {"status": "error", "message": f"杯子 [{cup_id}] 已被借出"}
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(TAIPEI_TZ)
 
     # 4. 更新杯子狀態
     cup.state = "borrowed"
@@ -174,6 +182,9 @@ def _handle_borrow(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
     if store and store.cups_in_stock > 0:
         store.cups_in_stock -= 1
 
+    # 8. 記錄日誌
+    log_event(db, "BORROW", f"借出杯子: {cup_id}", f"使用者: {user_uuid}, 門市: {store_code}", operator_id=user_uuid)
+
     db.commit()
 
     return {
@@ -187,7 +198,7 @@ def _handle_borrow(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
 
 def _handle_return(db: Session, cup_id: str, user_uuid: str, store_code: str) -> dict:
     """處理歸還邏輯。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(TAIPEI_TZ)
 
     # 1. 找到該杯子目前進行中的借出紀錄 (不強求傳入的 user_uuid 匹配，以杯子狀態為準)
     record = (
@@ -227,6 +238,9 @@ def _handle_return(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
     store = db.query(Store).filter(Store.store_id == store_code).first()
     if store:
         store.cups_in_stock += 1
+
+    # 6. 記錄日誌
+    log_event(db, "RETURN", f"歸還杯子: {cup_id}", f"使用者: {target_user_uuid}, 門市: {store_code}", operator_id=store_code)
 
     db.commit()
 

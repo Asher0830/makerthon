@@ -3,14 +3,14 @@
 # ==============================================================================
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from database import Base
 
-
 def _utcnow():
-    return datetime.now(timezone.utc)
+    # 使用 GMT+8 (台北時間)
+    return datetime.now(timezone(timedelta(hours=8)))
 
 
 def _gen_uuid():
@@ -27,6 +27,7 @@ class User(Base):
     current_borrow_count = Column(Integer, default=0)
     total_borrow_count = Column(Integer, default=0)
     points = Column(Integer, default=0)
+    is_suspended = Column(Integer, default=0)  # 0: Normal, 1: Suspended
     created_at = Column(DateTime, default=_utcnow)
 
     records = relationship("Record", back_populates="user", lazy="dynamic")
@@ -38,6 +39,8 @@ class Store(Base):
     store_id = Column(String, primary_key=True)
     name = Column(String, nullable=False, default="")
     real_local = Column(Text, default="")
+    latitude = Column(Integer, nullable=True) # Stored as int (e.g. 250330 for 25.0330)
+    longitude = Column(Integer, nullable=True)
     password_hash = Column(String, nullable=False)
     scanner_id = Column(String, unique=True, nullable=True)
     cups_in_stock = Column(Integer, default=0)
@@ -77,3 +80,16 @@ class Record(Base):
     cup = relationship("Cup")
     borrow_store = relationship("Store", foreign_keys=[borrow_store_id])
     return_store = relationship("Store", foreign_keys=[return_store_id])
+
+
+class SystemLog(Base):
+    __tablename__ = "system_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=_utcnow)
+    level = Column(String, default="INFO")  # INFO / WARNING / ERROR
+    category = Column(String)  # AUTH / BORROW / RETURN / ADMIN
+    event = Column(String)
+    details = Column(Text)
+    operator_id = Column(String, nullable=True)  # UUID or store_id or "ADMIN"
+

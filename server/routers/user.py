@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from database import get_db
-from models import User, Record
+from models import User, Record, Store
 from schemas import (
     UserInfoResponse,
     UserCupsResponse,
@@ -131,3 +131,17 @@ def get_my_stats(
         total_borrow_count=user.total_borrow_count,
         points=user.points,
     )
+
+
+@router.get("/stores")
+def get_all_stores(db: Session = Depends(get_db)):
+    """取得所有門市列表。"""
+    stores = db.query(Store).all()
+    return [{
+        "store_id": s.store_id,
+        "name": s.name,
+        "real_local": s.real_local,
+        "latitude": s.latitude,
+        "longitude": s.longitude,
+        "cups_in_stock": s.cups_in_stock
+    } for s in stores]

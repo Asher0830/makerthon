@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone, time
+from datetime import datetime, timezone, time, timedelta
 
 from database import get_db
 from models import User, Store, Cup, Record
@@ -17,9 +17,15 @@ from schemas import (
     CupCreateRequest,
     CupUpdateRequest,
     UserUpdateRequest,
+    AdminOverdueListResponse,
+    AdminOverdueRecordItem,
+    UserSuspensionRequest,
+    AdminLogListResponse,
 )
 from auth import create_admin_token, get_admin, get_password_hash
 from config import SUPER_ADMIN_USERNAME, SUPER_ADMIN_PASSWORD
+from utils.logger import log_event
+from models import SystemLog
 
 router = APIRouter(prefix="/api/admin", tags=["超級管理員"])
 
@@ -39,9 +45,12 @@ def admin_login(req: AdminLoginRequest):
 @router.get("/stats/global", response_model=AdminGlobalStatsResponse)
 def global_stats(_admin_id: str = Depends(get_admin), db: Session = Depends(get_db)):
     """全域統計資料。"""
+    tz_taipei = timezone(timedelta(hours=8))
+    now_taipei = datetime.now(tz_taipei)
+    
     today_start = datetime.combine(
-        datetime.now(timezone.utc).date(), time.min
-    ).replace(tzinfo=timezone.utc)
+        now_taipei.date(), time.min
+    ).replace(tzinfo=tz_taipei)
 
     total_users = db.query(User).count()
     total_cups = db.query(Cup).count()
@@ -50,7 +59,7 @@ def global_stats(_admin_id: str = Depends(get_admin), db: Session = Depends(get_
     
     overdue_count = db.query(Record).filter(
         Record.state.in_(["ongoing", "overdue"]),
-        Record.due_date < datetime.now(timezone.utc)
+        Record.due_date < now_taipei
     ).count()
 
     today_borrow = db.query(Record).filter(Record.borrow_time >= today_start).count()
@@ -251,3 +260,85 @@ def store_rankings(
             for sid, cnt in return_ranks
         ],
     }
+
+@router.get("/stats/overdue-records", response_model=AdminOverdueListResponse)
+def list_overdue_records(
+    _admin_id: str = Depends(get_admin),
+    db: Session = Depends(get_db)
+):
+    """取得所有逾期中的借用紀錄與使用者資訊。"""
+    tz_taipei = timezone(timedelta(hours=8))
+    now_taipei = datetime.now(tz_taipei)
+
+    # 查詢所有狀態為 ongoing 或 overdue 且 due_date < now 的紀錄
+    overdue_records = (
+        db.query(Record)
+        .filter(
+            Record.state.in_(["ongoing", "overdue"]),
+            Record.due_date < now_taipei
+        )
+        .order_by(Record.due_date.asc())
+        .all()
+    )
+
+    # 取得關聯的店名與使用者名稱
+    result = []
+    for r in overdue_records:
+        user = db.query(User).filter(User.uuid == r.uuid).first()
+        store = db.query(Store).filter(Store.store_id == r.borrow_store_id).first()
+        
+        result.append({
+            "serial_num": r.serial_num,
+            "user_uuid": r.uuid,
+            "user_name": user.name if user else "Unknown",
+            "user_email": user.email if user else "N/A",
+            "cup_id": r.cup_id,
+            "borrow_store_name": store.name if store else r.borrow_store_id,
+            "borrow_time": r.borrow_time,
+            "due_date": r.due_date,
+            "state": r.state,
+            "is_suspended": user.is_suspended if user else 0
+        })
+
+    return {
+        "total": len(result),
+        "overdue_records": result
+    }
+
+@router.put("/users/{user_uuid}/suspend")
+def suspend_user(
+    user_uuid: str,
+    req: UserSuspensionRequest,
+    _admin_id: str = Depends(get_admin),
+    db: Session = Depends(get_db)
+):
+    """手動停權或解除停權。"""
+    user = db.query(User).filter(User.uuid == user_uuid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="找不到使用者")
+    
+    user.is_suspended = req.is_suspended
+    db.commit()
+    
+    status_text = "停權" if req.is_suspended == 1 else "解除停權"
+    log_event(db, "ADMIN", f"管理員{status_text}使用者: {user.email}", f"UUID: {user_uuid}", operator_id="ADMIN")
+    
+    return {"status": "ok", "message": f"使用者 {user.email} 已 {status_text}"}
+
+@router.get("/logs", response_model=AdminLogListResponse)
+def get_system_logs(
+    limit: int = 50,
+    offset: int = 0,
+    _admin_id: str = Depends(get_admin),
+    db: Session = Depends(get_db)
+):
+    """取得系統操作日誌。"""
+    total = db.query(SystemLog).count()
+    logs = (
+        db.query(SystemLog)
+        .order_by(SystemLog.timestamp.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return {"total": total, "logs": logs}
