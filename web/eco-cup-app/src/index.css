@@ -142,13 +142,16 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 500px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--surface);
   backdrop-filter: blur(20px);
   display: flex;
   justify-content: space-around;
+  align-items: center;
   padding: 12px 10px 24px 10px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  z-index: 100;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
+  z-index: 9999;
+  pointer-events: auto;
 }
 
 .nav-item {

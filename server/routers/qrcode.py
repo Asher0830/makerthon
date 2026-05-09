@@ -74,6 +74,10 @@ async def qrcode_scan(
 
 # ── ESP32 WebSocket 長連線 ────────────────────────────────────────────────────
 
+# 簡單的記憶體去重機制 (Debounce Cache)
+import time
+_last_scan_cache = {}
+
 @router.websocket("/ws/scanner/{scanner_id}")
 async def scanner_websocket(websocket: WebSocket, scanner_id: str):
     sid = scanner_id.upper()
@@ -83,9 +87,24 @@ async def scanner_websocket(websocket: WebSocket, scanner_id: str):
         while True:
             raw = await websocket.receive_text()
             logger.info(f"[{scanner_id}] 接收: {raw}")
+            
+            # 去重邏輯：如果 5 秒內同個 scanner_id 傳來相同的字串，直接略過
+            current_time = time.time()
+            cache_key = f"{sid}_{raw.strip()}"
+            if cache_key in _last_scan_cache:
+                if current_time - _last_scan_cache[cache_key] < 5:
+                    logger.info(f"[{scanner_id}] ⏳ 連續重複掃描，已自動忽略: {raw}")
+                    await websocket.send_text(json.dumps({
+                        "status": "ignored",
+                        "message": "重複感應，已略過"
+                    }))
+                    continue
+            
+            _last_scan_cache[cache_key] = current_time
 
             try:
                 result = await _process_scanner_data(raw, scanner_id)
+                logger.info(f"[{scanner_id}] 執行結果: {result}")
                 await websocket.send_text(json.dumps(result))
             except Exception as e:
                 logger.error(f"[{scanner_id}] 處理失敗: {e}")

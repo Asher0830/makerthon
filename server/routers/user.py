@@ -145,3 +145,22 @@ def get_all_stores(db: Session = Depends(get_db)):
         "longitude": s.longitude,
         "cups_in_stock": s.cups_in_stock
     } for s in stores]
+
+
+@router.post("/deduct_points")
+def deduct_points(
+    amount: int,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """扣除使用者的小樹點。"""
+    user = db.query(User).filter(User.uuid == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="使用者不存在")
+    
+    if user.points < amount:
+        raise HTTPException(status_code=400, detail="點數不足")
+    
+    user.points -= amount
+    db.commit()
+    return {"status": "success", "remaining_points": user.points}

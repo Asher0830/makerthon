@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Home, User, Clock, QrCode, Gift, Navigation, Coffee, Bell, ChevronRight, History, LogOut, Activity, Store, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Home, User, Clock, QrCode, Gift, Navigation, Coffee, Bell, ChevronRight, History, LogOut, Activity, Store, MapPin, Egg } from 'lucide-react';
 import Scanner from '../components/Scanner';
 import { useI18n } from '../i18n';
 import cupImg from '../assets/cup.png';
 
 export default function Dashboard({ user, onLogout }) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [isScanning, setIsScanning] = useState(false);
+  const [showRankModal, setShowRankModal] = useState(false);
   const [scanMessage, setScanMessage] = useState('');
   const [activeTab, setActiveTab] = useState('home');
 
@@ -251,13 +254,17 @@ export default function Dashboard({ user, onLogout }) {
     return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const RANKS = [
+    { name: '環保新芽', count: 0, icon: '🌱', color: '#166534', bg: '#F0FDF4', desc: '環保之路的起點，繼續加油！' },
+    { name: '減塑學徒', count: 10, icon: '🌿', color: '#92400E', bg: '#FFF7ED', desc: '你已經掌握了減塑的基本技巧。' },
+    { name: '低碳騎士', count: 50, icon: '🛡️', color: '#4B5563', bg: '#F3F4F6', desc: '你是環保戰士，為地球減少負擔。' },
+    { name: '不塑之客', count: 150, icon: '✨', color: '#D97706', bg: '#FFFBEB', desc: '減塑已經成為你的生活品味。' },
+    { name: '綠能大師', count: 400, icon: '🌳', color: '#059669', bg: '#ECFDF5', desc: '你是綠色能量的傳播者。' },
+    { name: '地球守護者', count: 1000, icon: '🌍', color: '#7C3AED', bg: '#F5F3FF', desc: '傳說級別的貢獻，地球感謝有你！' }
+  ];
+
   const getUserRank = (count) => {
-    if (count >= 100) return { name: '地球守護者', color: '#7C3AED', bg: '#F5F3FF' };
-    if (count >= 50) return { name: '綠能大師', color: '#059669', bg: '#ECFDF5' };
-    if (count >= 25) return { name: '不塑之客', color: '#D97706', bg: '#FFFBEB' };
-    if (count >= 10) return { name: '低碳騎士', color: '#4B5563', bg: '#F3F4F6' };
-    if (count >= 3) return { name: '減塑學徒', color: '#92400E', bg: '#FFF7ED' };
-    return { name: '環保新芽', color: '#166534', bg: '#F0FDF4' };
+    return [...RANKS].reverse().find(r => count >= r.count) || RANKS[0];
   };
 
   const rank = getUserRank(userStats.total_borrow_count);
@@ -352,17 +359,28 @@ export default function Dashboard({ user, onLogout }) {
               {activeTab === 'home' ? getGreeting() : '我的設定'}
             </h1>
             {activeTab === 'home' && (
-              <div style={{ display: 'inline-flex', marginTop: '4px', background: rank.bg, color: rank.color, padding: '2px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, alignItems: 'center', gap: '4px', border: `1px solid ${rank.color}22` }}>
-                {rank.name}
+              <div 
+                onClick={() => setShowRankModal(true)}
+                className="badge"
+                style={{ 
+                  display: 'inline-flex', marginTop: '4px', background: rank.bg, color: rank.color, 
+                  padding: '2px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, 
+                  alignItems: 'center', gap: '4px', border: `1px solid ${rank.color}33`,
+                  cursor: 'pointer'
+                }}
+              >
+                {rank.icon} {rank.name}
               </div>
             )}
           </div>
-          <div style={{ position: 'relative' }}>
-            <div style={{ background: '#FEF3C7', color: '#B45309', padding: '8px 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.9rem', boxShadow: '0 4px 10px rgba(180, 83, 9, 0.1)' }}>
-              <Gift size={18} />
-              <span>{userStats.points}</span>
+          {activeTab === 'home' && (
+            <div style={{ position: 'relative' }}>
+              <div style={{ background: '#FEF3C7', color: '#B45309', padding: '8px 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.9rem', boxShadow: '0 4px 10px rgba(180, 83, 9, 0.1)' }}>
+                <Gift size={18} />
+                <span>{userStats.points}</span>
+              </div>
             </div>
-          </div>
+          )}
         </header>
 
         {activeTab === 'home' && (
@@ -535,8 +553,16 @@ export default function Dashboard({ user, onLogout }) {
                 <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{user.name}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>{user.email}</div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <span className="badge" style={{ background: rank.bg, color: rank.color, border: `1px solid ${rank.color}33`, display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'none', letterSpacing: 'normal' }}>
-                    {rank.name}
+                  <span 
+                    onClick={() => setShowRankModal(true)}
+                    className="badge" 
+                    style={{ 
+                      background: rank.bg, color: rank.color, border: `1px solid ${rank.color}33`, 
+                      display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'none', 
+                      letterSpacing: 'normal', cursor: 'pointer' 
+                    }}
+                  >
+                    {rank.icon} {rank.name}
                   </span>
                 </div>
               </div>
@@ -549,7 +575,7 @@ export default function Dashboard({ user, onLogout }) {
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--secondary)' }}>{userStats.points}</div>
               </div>
               <div className="card" style={{ padding: '20px', textAlign: 'center', border: 'none' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px' }}>累計環保次數</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px' }}>{t('total_borrow_count')}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{userStats.total_borrow_count}</div>
               </div>
             </div>
@@ -599,13 +625,22 @@ export default function Dashboard({ user, onLogout }) {
               )}
             </div>
 
+            {/* QR Code Scan - Primary Action */}
+            <button 
+              onClick={() => setIsScanning(true)} 
+              className="btn btn-primary" 
+              style={{ width: '100%', marginTop: '24px', padding: '16px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+            >
+              <QrCode size={20} /> {t('scan_borrow')}
+            </button>
+
             {/* Sponsor - Life Style Action */}
             <a 
               href="https://youtu.be/dQw4w9WgXcQ?si=6Y9NjSGbY1CJXpCq" 
               target="_blank" 
               rel="noopener noreferrer"
               className="btn"
-              style={{ width: '100%', marginTop: '32px', padding: '16px', background: 'var(--accent)', color: 'var(--text)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', border: 'none' }}
+              style={{ width: '100%', marginTop: '12px', padding: '16px', background: 'var(--accent)', color: 'var(--text)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', border: 'none' }}
             >
               <Gift size={20} /> {t('sponsor')}
             </a>
@@ -631,27 +666,68 @@ export default function Dashboard({ user, onLogout }) {
 
       {/* Floating Action Bar - Life Style Design */}
       <nav className="nav-bar">
-        <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
+        <button className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
           <Home size={22} />
           <span>{t('nav_home')}</span>
-        </div>
+        </button>
         
-        {/* Main Scan Button */}
+        {/* Main Tree Game Button */}
         <div style={{ position: 'relative', top: '-30px' }}>
           <button 
             className="btn btn-primary" 
-            onClick={() => setIsScanning(true)}
-            style={{ width: '64px', height: '64px', borderRadius: '22px', padding: 0, boxShadow: '0 10px 25px rgba(96, 108, 56, 0.4)' }}
+            onClick={() => navigate('/tree')}
+            style={{ width: '64px', height: '64px', borderRadius: '22px', padding: 0, boxShadow: '0 10px 25px rgba(96, 108, 56, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <QrCode size={30} />
+            <Egg size={32} color="white" />
           </button>
         </div>
 
-        <div className={`nav-item ${activeTab === 'member' ? 'active' : ''}`} onClick={() => setActiveTab('member')}>
+        <button className={`nav-item ${activeTab === 'member' ? 'active' : ''}`} onClick={() => setActiveTab('member')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
           <User size={22} />
           <span>{t('nav_member')}</span>
-        </div>
+        </button>
       </nav>
+
+      {/* Rank Modal */}
+      {showRankModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(8px)' }}>
+          <div className="fade-in" style={{ background: 'var(--surface)', borderRadius: '32px', width: '100%', maxWidth: '360px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+            <div style={{ padding: '32px 24px', background: 'linear-gradient(to bottom, var(--primary), transparent)', color: 'white', textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🏆</div>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>{t('rank_explanation')}</h2>
+              <p style={{ margin: '8px 0 0', opacity: 0.8, fontSize: '0.9rem' }}>{t('rank_subtitle')}</p>
+            </div>
+            
+            <div style={{ padding: '24px', maxHeight: '400px', overflowY: 'auto' }}>
+              {RANKS.map((r, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '16px', marginBottom: '12px',
+                  background: rank.name === r.name ? r.bg : 'rgba(0,0,0,0.02)',
+                  border: rank.name === r.name ? `1px solid ${r.color}33` : '1px solid transparent',
+                  opacity: userStats.total_borrow_count >= r.count ? 1 : 0.4
+                }}>
+                  <div style={{ fontSize: '1.5rem', width: '40px', textAlign: 'center' }}>{r.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: r.color, fontSize: '1rem' }}>{r.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('total_borrow_count')} {r.count}+</div>
+                    {rank.name === r.name && <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: r.color, fontStyle: 'italic' }}>{r.desc}</p>}
+                  </div>
+                  {userStats.total_borrow_count >= r.count && <div style={{ color: r.color, fontWeight: 900 }}>✓</div>}
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '0 24px 24px' }}>
+              <button 
+                onClick={() => setShowRankModal(false)}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '16px', borderRadius: '16px', fontWeight: 800 }}
+              >
+                {t('got_it')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isScanning && (
         <Scanner onClose={() => setIsScanning(false)} onScanSuccess={handleScanSuccess} />

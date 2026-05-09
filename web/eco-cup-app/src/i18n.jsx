@@ -107,6 +107,21 @@ const translations = {
     pull_to_refresh: '下拉更新一下',
     release_to_refresh: '放開手，我要更新囉',
     refreshing: '正在變身中...',
+    
+    // Game & Rank (New)
+    rank_explanation: '等級制度說明',
+    rank_subtitle: '累積還杯次數，解鎖專屬頭銜',
+    got_it: '我知道了',
+    hatch: '孵化',
+    book: '圖鑑',
+    hatching: '孵化中...',
+    start_hatch: '開始孵化',
+    new_spirit: '發現新樹靈',
+    congrats: '恭喜！',
+    points_insufficient: '點數不足',
+    spirit_of_trees: '樹靈守護',
+    earth_guardian: '大地守護者',
+    total_borrow_count: '累計環保次數',
   },
 
   'en': {
@@ -215,6 +230,21 @@ const translations = {
     pull_to_refresh: 'Pull to refresh',
     release_to_refresh: 'Release to update',
     refreshing: 'Transforming...',
+
+    // Game & Rank (New)
+    rank_explanation: 'Rank System',
+    rank_subtitle: 'Return cups to unlock titles',
+    got_it: 'Got it',
+    hatch: 'Hatch',
+    book: 'Collection',
+    hatching: 'Hatching...',
+    start_hatch: 'Start Hatching',
+    new_spirit: 'New Spirit Found',
+    congrats: 'Congrats!',
+    points_insufficient: 'Points Insufficient',
+    spirit_of_trees: 'Tree Spirits',
+    earth_guardian: 'Earth Guardian',
+    total_borrow_count: 'Total Returns',
   }
 };
 

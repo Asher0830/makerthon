@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import StoreDashboard from './pages/StoreDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ScanHandler from './pages/ScanHandler';
+import TreeRewardDashboard from './pages/TreeRewardDashboard';
 
 function AppInner() {
   const [user, setUser] = useState(null);
@@ -65,16 +66,15 @@ function AppInner() {
   return (
     <BrowserRouter>
       <div className="app-container">
-        {/* Top-right controls */}
-        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 1000, display: 'flex', gap: '10px' }}>
+        {/* Global Controls - Flow naturally instead of overlaying */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0', gap: '10px' }}>
           <button
             onClick={toggleLang}
             style={{ 
               background: 'var(--surface)', border: '1px solid rgba(128,128,128,0.2)', 
-              color: 'var(--text)', padding: '8px 12px', borderRadius: '12px', 
+              color: 'var(--text)', padding: '6px 12px', borderRadius: '12px', 
               fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)', backdropFilter: 'blur(10px)',
-              transition: 'all 0.2s', opacity: 0.95
+              boxShadow: 'var(--shadow-sm)', transition: 'all 0.2s'
             }}
           >
             {lang === 'zh-TW' ? 'EN' : '繁中'}
@@ -83,10 +83,9 @@ function AppInner() {
             onClick={() => setDarkMode(!darkMode)}
             style={{ 
               background: 'var(--surface)', border: '1px solid rgba(128,128,128,0.2)', 
-              color: 'var(--text)', padding: '8px 12px', borderRadius: '12px', 
+              color: 'var(--text)', padding: '6px 12px', borderRadius: '12px', 
               fontSize: '0.75rem', cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)', backdropFilter: 'blur(10px)',
-              transition: 'all 0.2s', opacity: 0.95
+              boxShadow: 'var(--shadow-sm)', transition: 'all 0.2s'
             }}
           >
             {darkMode ? '☀️' : '🌙'}
@@ -98,13 +97,24 @@ function AppInner() {
             path="/login" 
             element={user ? (
               sessionStorage.getItem('pendingScan') 
-                ? <Navigate to={`/scan?scanner_id=${JSON.parse(sessionStorage.getItem('pendingScan')).scanner_id}&store_id=${JSON.parse(sessionStorage.getItem('pendingScan')).store_id}`} />
-                : <Navigate to="/" />
-            ) : <Login type="user" onLogin={(d) => handleLogin('user', d)} />} 
+                ? <Navigate to={`/scan/${sessionStorage.getItem('pendingScan')}`} /> 
+                : <Navigate to="/dashboard" />
+            ) : (
+              <Login onLogin={handleLogin} />
+            )} 
+          />
+          <Route path="/tree" element={<TreeRewardDashboard />} />
+          <Route 
+            path="/dashboard" 
+            element={user ? <Dashboard user={user} onLogout={() => handleLogout('user')} /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/" 
-            element={user ? <Dashboard user={user} onLogout={() => handleLogout('user')} /> : <Navigate to="/login" />} 
+            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/store/*" 
+            element={store ? <StoreDashboard store={store} onLogout={() => handleLogout('store')} /> : <Navigate to="/store/login" />} 
           />
           
           {/* Scan Route for external QR scanners */}
