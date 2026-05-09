@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Database
+server/database.db
+server/database.db-journal
+
+# Node.js
+node_modules/
+dist/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

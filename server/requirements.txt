@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+google-auth
+requests
+PyJWT
+pydantic
+passlib[bcrypt]
+apscheduler
+sendgrid
+websockets
+python-multipart
