@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, User, Clock, QrCode, Gift, Navigation, Coffee, Bell, ChevronRight, History, LogOut, Activity, Store, MapPin, Egg } from 'lucide-react';
+import { Home, User, Clock, QrCode, Gift, Navigation, Coffee, Bell, ChevronRight, History, LogOut, Activity, Store, MapPin, Egg, Truck } from 'lucide-react';
 import Scanner from '../components/Scanner';
 import { useI18n } from '../i18n';
 import cupImg from '../assets/cup.png';
@@ -223,11 +223,11 @@ export default function Dashboard({ user, onLogout }) {
         const parsed = JSON.parse(decodedText);
         storeId = parsed.store_id || "";
         scannerId = parsed.scanner_id || decodedText;
-      } catch(e) {}
+      } catch (e) { }
 
       const response = await fetch(`${API_BASE}/qrcode/scan`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user.token}`
         },
@@ -331,8 +331,8 @@ export default function Dashboard({ user, onLogout }) {
 
   return (
     <>
-      <div 
-        className="content-area fade-in" 
+      <div
+        className="content-area fade-in"
         ref={contentRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -359,12 +359,12 @@ export default function Dashboard({ user, onLogout }) {
               {activeTab === 'home' ? getGreeting() : '我的設定'}
             </h1>
             {activeTab === 'home' && (
-              <div 
+              <div
                 onClick={() => setShowRankModal(true)}
                 className="badge"
-                style={{ 
-                  display: 'inline-flex', marginTop: '4px', background: rank.bg, color: rank.color, 
-                  padding: '2px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, 
+                style={{
+                  display: 'inline-flex', marginTop: '4px', background: rank.bg, color: rank.color,
+                  padding: '2px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700,
                   alignItems: 'center', gap: '4px', border: `1px solid ${rank.color}33`,
                   cursor: 'pointer'
                 }}
@@ -396,9 +396,9 @@ export default function Dashboard({ user, onLogout }) {
 
             {/* Notification Toggle - Soft Warning */}
             {!notifEnabled && (
-              <div 
+              <div
                 onClick={requestNotification}
-                className="card" 
+                className="card"
                 style={{ background: '#FFF7ED', border: '1px dashed #FDBA74', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
               >
                 <div style={{ background: '#FDBA74', color: 'white', padding: '8px', borderRadius: '10px' }}>
@@ -417,7 +417,7 @@ export default function Dashboard({ user, onLogout }) {
               <Coffee size={20} color="var(--primary)" />
               {t('my_cups')}
             </h2>
-            
+
             {loadingCups ? (
               <>
                 <SkeletonCard />
@@ -457,7 +457,7 @@ export default function Dashboard({ user, onLogout }) {
               <Store size={20} color="var(--primary)" />
               尋找夥伴門市
             </h2>
-            <div 
+            <div
               className="store-dial-container"
               onTouchStart={handleDialTouchStart}
               onTouchMove={handleDialTouchMove}
@@ -476,8 +476,8 @@ export default function Dashboard({ user, onLogout }) {
                   const angle = 360 / stores.length;
                   const rotation = idx * angle;
                   return (
-                    <div 
-                      key={s.store_id} 
+                    <div
+                      key={s.store_id}
                       className={`dial-item ${selectedStoreIdx === idx ? 'active' : ''}`}
                       style={{ '--rotation': `${rotation}deg`, transform: `rotate(${rotation}deg) translateZ(0)` }}
                       onClick={(e) => {
@@ -501,44 +501,134 @@ export default function Dashboard({ user, onLogout }) {
                 })}
               </div>
             </div>
-            
+
             {stores.length > 0 && (
               <>
                 <div className="store-info-card fade-in" key={stores[selectedStoreIdx].store_id}>
-                   <div style={{ marginBottom: '12px' }}>
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 800 }}>{stores[selectedStoreIdx].name}</h3>
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                        {getStoreMockData(stores[selectedStoreIdx].store_id).intro}
-                      </p>
-                   </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 800 }}>{stores[selectedStoreIdx].name}</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      {getStoreMockData(stores[selectedStoreIdx].store_id).intro}
+                    </p>
+                  </div>
 
-                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
-                      <div style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                         <Navigation size={12} /> {calculateDistance(stores[selectedStoreIdx].latitude, stores[selectedStoreIdx].longitude) || '定位中'}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
+                    <div style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Navigation size={12} /> {calculateDistance(stores[selectedStoreIdx].latitude, stores[selectedStoreIdx].longitude) || '定位中'}
+                    </div>
+                    <div style={{ background: '#F5F3FF', color: '#7C3AED', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #EDE9FE', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} /> {getStoreMockData(stores[selectedStoreIdx].store_id).hours}
+                    </div>
+                    {isStoreOpen(getStoreMockData(stores[selectedStoreIdx].store_id).hours) ? (
+                      <div style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #DCFCE7' }}>
+                        {t('status')}: {t('normal')}
                       </div>
-                      <div style={{ background: '#F5F3FF', color: '#7C3AED', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #EDE9FE', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                         <Clock size={12} /> {getStoreMockData(stores[selectedStoreIdx].store_id).hours}
+                    ) : (
+                      <div style={{ background: '#FEF2F2', color: '#991B1B', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #FEE2E2' }}>
+                        {t('status')}: 休息中
                       </div>
-                      {isStoreOpen(getStoreMockData(stores[selectedStoreIdx].store_id).hours) ? (
-                        <div style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #DCFCE7' }}>
-                           {t('status')}: {t('normal')}
-                        </div>
-                      ) : (
-                        <div style={{ background: '#FEF2F2', color: '#991B1B', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #FEE2E2' }}>
-                           {t('status')}: 休息中
-                        </div>
-                      )}
-                   </div>
+                    )}
+                  </div>
 
-                   <div style={{ background: 'rgba(0,0,0,0.02)', padding: '12px 16px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'center', justifyContent: 'center' }}>
-                      <MapPin size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all', lineHeight: 1.4 }}>
-                        {stores[selectedStoreIdx].real_local}
-                      </div>
-                   </div>
+                  <div style={{ background: 'rgba(0,0,0,0.02)', padding: '12px 16px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'center', justifyContent: 'center' }}>
+                    <MapPin size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all', lineHeight: 1.4 }}>
+                      {stores[selectedStoreIdx].real_local}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
+
+            {/* Green Express Bounty Section */}
+            <h2 style={{ fontSize: '1.25rem', marginTop: '32px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Truck size={20} color="var(--primary)" />
+              綠色快遞懸賞
+            </h2>
+
+            <div
+              onClick={() => navigate('/bounty')}
+              className="card bounty-float bounty-card-adaptive"
+              style={{
+                borderRadius: '28px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden',
+                border: '1px solid var(--bounty-border)',
+                background: 'var(--bounty-bg)',
+                color: 'var(--bounty-text)',
+                boxShadow: '0 15px 35px var(--bounty-shadow)'
+              }}
+            >
+              {/* Background Glow Effect */}
+              <div style={{ position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', background: 'radial-gradient(circle, var(--bounty-glow) 0%, transparent 70%)', animation: 'pulse 4s infinite' }}></div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', zIndex: 1 }}>
+                <div style={{ width: '60px', height: '60px', borderRadius: '20px', background: 'var(--bounty-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Truck size={32} color="var(--primary)" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.15rem', color: 'var(--primary)', marginBottom: '4px', letterSpacing: '1px' }}>配送任務</div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.8, lineHeight: 1.4, color: 'var(--bounty-text-muted)' }}>協助門市杯具調度，賺取環保積分</div>
+                </div>
+                <div style={{ background: 'var(--primary)', color: 'white', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ChevronRight size={24} />
+                </div>
+              </div>
+
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bounty-stats-bg)', padding: '12px 20px', borderRadius: '16px', border: '1px solid var(--bounty-stats-border)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>平均收益</div>
+                <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '1.1rem' }}>~150 PTS</div>
+              </div>
+            </div>
+
+            <style>{`
+              :root {
+                --bounty-bg: rgba(74, 222, 128, 0.08);
+                --bounty-text: #166534;
+                --bounty-text-muted: rgba(22, 101, 52, 0.7);
+                --bounty-border: rgba(74, 222, 128, 0.4);
+                --bounty-shadow: rgba(0, 0, 0, 0.05);
+                --bounty-glow: rgba(74, 222, 128, 0.1);
+                --bounty-icon-bg: rgba(74, 222, 128, 0.1);
+                --bounty-stats-bg: rgba(255, 255, 255, 0.5);
+                --bounty-stats-border: rgba(74, 222, 128, 0.1);
+              }
+              [data-theme='dark'] {
+                --bounty-bg: rgba(255, 255, 255, 0.03);
+                --bounty-text: #ffffff;
+                --bounty-text-muted: rgba(255, 255, 255, 0.6);
+                --bounty-border: rgba(74, 222, 128, 0.3);
+                --bounty-shadow: rgba(0, 0, 0, 0.4);
+                --bounty-glow: rgba(74, 222, 128, 0.05);
+                --bounty-icon-bg: rgba(255, 255, 255, 0.05);
+                --bounty-stats-bg: rgba(0, 0, 0, 0.4);
+                --bounty-stats-border: rgba(255, 255, 255, 0.05);
+              }
+              .bounty-card-adaptive { 
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+              }
+              .bounty-card-adaptive:hover {
+                border-color: var(--primary) !important;
+                box-shadow: 0 20px 40px var(--bounty-shadow) !important;
+              }
+              .bounty-float { animation: floating 6s ease-in-out infinite; }
+              @keyframes floating {
+                0%, 100% { transform: translateY(0) rotate(0deg); }
+                33% { transform: translateY(-6px) rotate(0.5deg); }
+                66% { transform: translateY(-3px) rotate(-0.5deg); }
+              }
+              @keyframes pulse {
+                0%, 100% { opacity: 0.1; transform: scale(1); }
+                50% { opacity: 0.3; transform: scale(1.3); }
+              }
+            `}</style>
           </div>
         )}
 
@@ -553,13 +643,13 @@ export default function Dashboard({ user, onLogout }) {
                 <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>{user.name}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>{user.email}</div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <span 
+                  <span
                     onClick={() => setShowRankModal(true)}
-                    className="badge" 
-                    style={{ 
-                      background: rank.bg, color: rank.color, border: `1px solid ${rank.color}33`, 
-                      display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'none', 
-                      letterSpacing: 'normal', cursor: 'pointer' 
+                    className="badge"
+                    style={{
+                      background: rank.bg, color: rank.color, border: `1px solid ${rank.color}33`,
+                      display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'none',
+                      letterSpacing: 'normal', cursor: 'pointer'
                     }}
                   >
                     {rank.icon} {rank.name}
@@ -604,16 +694,16 @@ export default function Dashboard({ user, onLogout }) {
                         <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem' }}>{t('returned')}</span>
                       </div>
                       <div style={{ borderLeft: '2px dashed #E5E7EB', marginLeft: '6px', paddingLeft: '16px', position: 'relative' }}>
-                         <div style={{ marginBottom: '12px' }}>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{record.borrow_store_name || record.borrow_store_id}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(record.borrow_time)}</div>
-                            <div style={{ position: 'absolute', left: '-5px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', background: '#E5E7EB' }}></div>
-                         </div>
-                         <div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{record.return_store_name || record.return_store_id}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(record.return_time)}</div>
-                            <div style={{ position: 'absolute', left: '-5px', bottom: '4px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></div>
-                         </div>
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{record.borrow_store_name || record.borrow_store_id}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(record.borrow_time)}</div>
+                          <div style={{ position: 'absolute', left: '-5px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', background: '#E5E7EB' }}></div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{record.return_store_name || record.return_store_id}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(record.return_time)}</div>
+                          <div style={{ position: 'absolute', left: '-5px', bottom: '4px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -626,18 +716,18 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             {/* QR Code Scan - Primary Action */}
-            <button 
-              onClick={() => setIsScanning(true)} 
-              className="btn btn-primary" 
+            <button
+              onClick={() => setIsScanning(true)}
+              className="btn btn-primary"
               style={{ width: '100%', marginTop: '24px', padding: '16px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
             >
               <QrCode size={20} /> {t('scan_borrow')}
             </button>
 
             {/* Sponsor - Life Style Action */}
-            <a 
-              href="https://youtu.be/dQw4w9WgXcQ?si=6Y9NjSGbY1CJXpCq" 
-              target="_blank" 
+            <a
+              href="https://youtu.be/dQw4w9WgXcQ?si=6Y9NjSGbY1CJXpCq"
+              target="_blank"
               rel="noopener noreferrer"
               className="btn"
               style={{ width: '100%', marginTop: '12px', padding: '16px', background: 'var(--accent)', color: 'var(--text)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', border: 'none' }}
@@ -646,7 +736,7 @@ export default function Dashboard({ user, onLogout }) {
             </a>
 
             {/* Logout - Soft Action */}
-            <button 
+            <button
               onClick={onLogout}
               className="btn"
               style={{ width: '100%', marginTop: '12px', background: 'transparent', color: '#991B1B', border: '1px solid #FEE2E2', fontSize: '0.9rem' }}
@@ -655,7 +745,7 @@ export default function Dashboard({ user, onLogout }) {
             </button>
           </div>
         )}
-        
+
         {scanMessage && (
           <div style={{ position: 'fixed', top: '24px', left: '24px', right: '24px', background: 'var(--primary)', color: 'white', padding: '16px 24px', borderRadius: '16px', textAlign: 'center', zIndex: 1000, boxShadow: 'var(--shadow-lg)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
             <Activity size={20} className="spin" />
@@ -670,11 +760,11 @@ export default function Dashboard({ user, onLogout }) {
           <Home size={22} />
           <span>{t('nav_home')}</span>
         </button>
-        
+
         {/* Main Tree Game Button */}
         <div style={{ position: 'relative', top: '-30px' }}>
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={() => navigate('/tree')}
             style={{ width: '64px', height: '64px', borderRadius: '22px', padding: 0, boxShadow: '0 10px 25px rgba(96, 108, 56, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
@@ -697,10 +787,10 @@ export default function Dashboard({ user, onLogout }) {
               <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>{t('rank_explanation')}</h2>
               <p style={{ margin: '8px 0 0', opacity: 0.8, fontSize: '0.9rem' }}>{t('rank_subtitle')}</p>
             </div>
-            
+
             <div style={{ padding: '24px', maxHeight: '400px', overflowY: 'auto' }}>
               {RANKS.map((r, idx) => (
-                <div key={idx} style={{ 
+                <div key={idx} style={{
                   display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '16px', marginBottom: '12px',
                   background: rank.name === r.name ? r.bg : 'rgba(0,0,0,0.02)',
                   border: rank.name === r.name ? `1px solid ${r.color}33` : '1px solid transparent',
@@ -717,7 +807,7 @@ export default function Dashboard({ user, onLogout }) {
               ))}
             </div>
             <div style={{ padding: '0 24px 24px' }}>
-              <button 
+              <button
                 onClick={() => setShowRankModal(false)}
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '16px', borderRadius: '16px', fontWeight: 800 }}

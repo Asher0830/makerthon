@@ -82,6 +82,26 @@ class Record(Base):
     return_store = relationship("Store", foreign_keys=[return_store_id])
 
 
+class Bounty(Base):
+    __tablename__ = "bounties"
+
+    bounty_id = Column(String, primary_key=True, default=_gen_uuid)
+    title = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # collect (收杯), distribute (分發)
+    from_store_id = Column(String, ForeignKey("stores.store_id"), nullable=True)
+    to_store_id = Column(String, ForeignKey("stores.store_id"), nullable=True)
+    cup_count = Column(Integer, default=0)
+    reward_points = Column(Integer, default=0)
+    status = Column(String, default="open")  # open / taken / completed
+    worker_uuid = Column(String, ForeignKey("users.uuid"), nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    worker = relationship("User")
+    from_store = relationship("Store", foreign_keys=[from_store_id])
+    to_store = relationship("Store", foreign_keys=[to_store_id])
+
+
 class SystemLog(Base):
     __tablename__ = "system_logs"
 

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from database import engine, Base
-from routers import auth, user, qrcode, store, admin
+from routers import auth, user, qrcode, store, admin, bounty
 from tasks.email_cron import check_and_send_overdue_reminders
 
 # 設定日誌
@@ -68,6 +68,7 @@ app.include_router(user.router)
 app.include_router(qrcode.router)
 app.include_router(store.router)
 app.include_router(admin.router)
+app.include_router(bounty.router)
 
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["系統"])
 def health_check():

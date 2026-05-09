@@ -7,6 +7,7 @@ import StoreDashboard from './pages/StoreDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ScanHandler from './pages/ScanHandler';
 import TreeRewardDashboard from './pages/TreeRewardDashboard';
+import BountyBoard from './pages/BountyBoard';
 
 function AppInner() {
   const [user, setUser] = useState(null);
@@ -100,10 +101,11 @@ function AppInner() {
                 ? <Navigate to={`/scan/${sessionStorage.getItem('pendingScan')}`} /> 
                 : <Navigate to="/dashboard" />
             ) : (
-              <Login onLogin={handleLogin} />
+              <Login onLogin={(data) => handleLogin('user', data)} />
             )} 
           />
           <Route path="/tree" element={<TreeRewardDashboard />} />
+          <Route path="/bounty" element={<BountyBoard />} />
           <Route 
             path="/dashboard" 
             element={user ? <Dashboard user={user} onLogout={() => handleLogout('user')} /> : <Navigate to="/login" />} 
