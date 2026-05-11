@@ -2,52 +2,90 @@
 
 這是一個專為減塑環保設計的「循環杯借用管理系統」。結合了 **FastAPI 後端**、**React 行動端網頁** 以及 **ESP32 硬體掃描器**，實現自動化的借還杯體驗。
 
-## 🚀 v5.0 版本更新亮點
-- **新手大禮包 (Onboarding Rewards)**：註冊即贈送 1,000 小樹點與 5 筆隨機借還紀錄，提升用戶初次使用體驗。
-- **WebSocket 穩定化**：優化 ESP32 與伺服器間的連線心跳機制，解決 Ping Timeout 斷線問題。
-- **數據強一致性**：實作 `super_sync` 與歸還邏輯修正，確保手機端 UI 與後端庫存 100% 同步。
-- **精美彈窗系統**：全新的歡迎介面與多國語言 (i18n) 支援。
+---
+
+## 🌟 核心功能
+### 👥 用戶端 (Mobile Web)
+- **快速註冊/登入**：支援 Email 驗證與 JWT 安全認證。
+- **新手大禮包**：註冊即自動贈送 1,000 小樹點與 5 筆隨機歷史紀錄（2 筆借用中、3 筆已歸還）。
+- **借杯儀表板**：實時查看手邊持有的杯子、到期日與累積點數。
+- **樹靈養成遊戲**：消耗點數孵化「樹靈」，增加用戶黏著度。
+
+### 🏪 店家管理後台 (Store Admin)
+- **實時庫存監控**：掌握店內可用杯子數量。
+- **借還數據分析**：查看每日借出與歸還統計。
+- **逾期追蹤**：監控從本店借出但未如期歸還的杯子。
+
+### 🤖 硬體端 (ESP32 Scanner)
+- **自動化借還**：透過 WebSocket 與伺服器連線，實現「嗶一聲」即完成借還手續。
+- **離線自動重連**：強大的心跳包機制，確保網路不穩時能自動恢復連線。
+
+---
 
 ## 🛠️ 技術架構
-- **Backend**: Python 3.14+ / FastAPI / SQLAlchemy (SQLite) / Uvicorn
-- **Frontend**: React / Vite / TailwindCSS / Lucide Icons
-- **Hardware**: ESP32 / WebSocket Client / QR Code Scanner
-- **DevOps**: Cloudflare Tunnel (用於外網穿透)
+- **Backend**: FastAPI (Python 3.14+), SQLAlchemy (ORM), SQLite (Database).
+- **Frontend**: Vite + React, Lucide Icons, Vanilla CSS (Premium Glassmorphism Design).
+- **Hardware**: ESP32, Arduino C++, WebSockets (SSL support).
+- **Security**: Bcrypt password hashing, JWT Authentication.
 
-## 📦 快速開始
+---
 
-### 1. 後端伺服器 (Server)
+## 📊 資料庫表結構 (Schema)
+系統主要包含四張核心表：
+1. `users`: 儲存用戶資料、點數、借杯計數與狀態。
+2. `stores`: 儲存門市資訊、庫存數量、經緯度。
+3. `cups`: 儲存杯子 ID、目前所在門市、目前持有者。
+4. `records`: 儲存每一筆借還紀錄的流水帳（含借出時間、歸還時間、押金狀態）。
+
+---
+
+## 🔗 主要 API 路由
+| 路由 | 方法 | 描述 |
+| :--- | :--- | :--- |
+| `/api/auth/register` | `POST` | 用戶註冊 (觸發新手大禮包) |
+| `/api/auth/login` | `POST` | 用戶登入 |
+| `/api/user/stats` | `GET` | 獲取用戶點數與借用統計 |
+| `/api/user/cups` | `GET` | 列出目前持有中的杯子 |
+| `/api/store/dashboard` | `GET` | 店家後台首頁數據 |
+| `/ws/scanner/{id}` | `WS` | 掃描器 WebSocket 連線 |
+
+---
+
+## 📦 快速開始與環境變數
+
+### 1. 後端環境設定
+在 `server` 目錄下：
 ```bash
-cd server
+# 安裝依賴
 pip install -r requirements.txt
+
+# 啟動伺服器
 python main.py
 ```
-- API 地址：`http://localhost:8000`
-- 管理後台：`admin / admin1234`
-- 店家密碼：`S001 - S015 / password123`
+- **開發者模式**：預設開啟 `reload=True`。
+- **超級管理員**：`admin / admin1234`。
 
-### 2. 前端網頁 (Web)
+### 2. 前端開發
+在 `web/eco-cup-app` 目錄下：
 ```bash
-cd web/eco-cup-app
 npm install
 npm run dev
 ```
 
-### 3. 硬體端 (ESP32)
-- 使用 Arduino IDE 開啟 `esp32/esp32.ino`。
-- 修改 `ssid`, `password` 與 `WS_URL`。
-- 燒錄至 ESP32 開發板。
-
-## 📂 目錄結構
-- `/server`: API 原始碼、模型定義與排程任務。
-- `/web`: React 前端專案。
-- `/esp32`: 硬體韌體原始碼。
-- `/docs`: 設計文檔與資料庫 Schema。
-
-## 🛡️ 安全性說明
-- 密碼採用 `bcrypt` 加密儲存。
-- 認證採用 JWT Token (有效期 30 天)。
-- 支援 HTTPS (經由 Cloudflare)。
+### 3. 硬體燒錄
+- 硬體清單：ESP32-DevKitC, QR Code 掃描模組 (TTL)。
+- 連接方式：掃描器 RX/TX 接 ESP32 UART2 (GPIO 16/17)。
+- 修改 `esp32.ino` 中的 `WS_URL` 為您的伺服器網址。
 
 ---
-*Powered by Antigravity AI*
+
+## 🛡️ v5.0 安全與性能優化
+- **WebSocket 心跳協定**：伺服器設有 20 秒 Ping/Pong 逾期機制。
+- **外鍵約束保護**：確保所有借用紀錄必須對應有效的杯子與門市 ID。
+- **點數防作弊**：後端嚴格校驗每個帳號的點數流水。
+
+---
+## 📄 授權說明
+本專案為 Eco-Cup 團隊開發，僅供測試與教學使用。
+
+*Last Updated: 2026-05-11 by Antigravity AI*
