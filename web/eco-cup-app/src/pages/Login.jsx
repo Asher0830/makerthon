@@ -71,7 +71,7 @@ export default function Login({ onLogin, type = 'user' }) {
 
       let userData = { token: data.access_token };
       if (type === 'user') {
-        userData = { ...userData, uuid: data.uuid, name: data.name, email: data.email };
+        userData = { ...userData, uuid: data.uuid, name: data.name, email: data.email, is_new_user: data.is_new_user };
       } else if (type === 'store') {
         userData = { ...userData, store_id: data.store_id, name: data.store_name };
       } else if (type === 'admin') {

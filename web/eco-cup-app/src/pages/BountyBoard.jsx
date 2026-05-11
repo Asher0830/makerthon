@@ -4,7 +4,7 @@ import { useI18n } from '../i18n';
 import { ChevronLeft, Truck, Package, Activity, Crosshair, MapPin, Target, Navigation, Clock, ShieldCheck, Map as MapIcon, RotateCcw, AlertTriangle, CheckCircle, X } from 'lucide-react';
 
 // Leaflet 相關匯入
-import { MapContainer, TileLayer, Marker, Polyline, useMap, CircleMarker, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents, CircleMarker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -63,6 +63,13 @@ const createTacticalIcon = (type, active = false, hasBounty = false) => {
     iconSize: [50, 50], iconAnchor: [25, 25]
   });
 };
+
+function MapEvents({ onClick }) {
+  useMapEvents({
+    click: () => onClick(),
+  });
+  return null;
+}
 
 function MapController({ targetBounty, userLoc }) {
   const map = useMap();
@@ -211,9 +218,10 @@ export default function BountyBoard() {
         </div>
       )}
 
-      <MapContainer center={[25.045, 121.53]} zoom={13} style={{ height: '100%', width: '100%' }} zoomControl={false} onClick={() => setSelectedBounty(null)}>
+      <MapContainer center={[25.045, 121.53]} zoom={13} style={{ height: '100%', width: '100%' }} zoomControl={false}>
         <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
         <MapController targetBounty={activeTarget} />
+        <MapEvents onClick={() => setSelectedBounty(null)} />
 
         <Marker position={[CENTRAL_HUB.lat, CENTRAL_HUB.lng]} icon={createTacticalIcon('hub', !!activeTarget)}>
           <Tooltip permanent direction="top"><div style={{ fontWeight: 900, color: '#3b82f6', fontSize: '0.7rem' }}>中央 HUB</div></Tooltip>

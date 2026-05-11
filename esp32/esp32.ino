@@ -7,9 +7,9 @@
 // --- Wi-Fi 與 WebSocket 設定 ---
 const char* ssid = "COM";        
 const char* password = "02220222"; 
-const char* WS_HOST = "192.168.137.1"; 
-const int   WS_PORT = 8000;            
-const char* WS_PATH = "/ws/scanner/ESP32_001"; // 依照規格書，機台 ID 為 ESP32_001
+const char* WS_HOST = "api.as0830-nswer.me"; 
+const int   WS_PORT = 443;                  
+const char* WS_PATH = "/ws/scanner/ESP32_001"; 
 
 WebSocketsClient webSocket;
 
@@ -58,7 +58,8 @@ void setup() {
   
   connectToWiFi();
   
-  webSocket.begin(WS_HOST, WS_PORT, WS_PATH);
+  // Cloudflare 必須使用加密連線 (WSS)
+  webSocket.beginSSL(WS_HOST, WS_PORT, WS_PATH);
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000); // 規格書要求：斷線自動重連機制
   

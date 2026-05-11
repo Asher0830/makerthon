@@ -1,0 +1,150 @@
+
+--- 2026-05-10 10:57:44.300106 ---
+註冊發生嚴重錯誤: 400: 此 Email 已經註冊過
+Traceback (most recent call last):
+  File "C:\Users\hsieh\Desktop\test_web_server\server\routers\auth.py", line 26, in register
+    raise HTTPException(status_code=400, detail="此 Email 已經註冊過")
+fastapi.exceptions.HTTPException: 400: 此 Email 已經註冊過
+
+
+--- 2026-05-10 10:58:28.451596 ---
+註冊發生嚴重錯誤: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO records (serial_num, uuid, cup_id, store_id, borrow_store_id, borrow_time, return_store_id, return_time, due_date, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: [('bde66356-4e0e-437f-8906-904d618e8ce7', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'CUP_9AAB8324', None, 'S007', '2026-05-10 02:58:28.440203', None, None, '2026-05-13 10:58:28.440215', 'ongoing'), ('8aab648d-797c-4991-9a6b-207ed1fbdc94', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'CUP_DC082BAB', None, 'S012', '2026-05-10 03:58:28.440349', None, None, '2026-05-13 10:58:28.440354', 'ongoing'), ('70e3f236-8a6a-43f5-8032-07a585f0e32d', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'EC-NEW-872B27', None, 'S009', '2026-05-04 10:58:28.440404', 'S010', '2026-05-06 10:58:28.440404', None, 'returned'), ('6bda0ede-1703-4dee-a237-340f6471b41b', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'EC-NEW-E93286', None, 'S006', '2026-05-01 10:58:28.440455', 'S015', '2026-05-02 10:58:28.440455', None, 'returned'), ('e18de609-9224-412e-92b2-d368749705a8', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'EC-NEW-A0CBB5', None, 'S012', '2026-04-30 10:58:28.440506', 'S005', '2026-05-02 10:58:28.440506', None, 'returned')]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+Traceback (most recent call last):
+  File "C:\Users\hsieh\Desktop\test_web_server\server\routers\auth.py", line 98, in register
+    access_token = create_user_token(user.uuid)
+                                     ^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 569, in __get__
+    return self.impl.get(state, dict_)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 1096, in get
+    value = self._fire_loader_callables(state, key, passive)
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 1126, in _fire_loader_callables
+    return state._load_expired(state, passive)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py", line 828, in _load_expired
+    self.manager.expired_attribute_loader(self, toload, passive)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 1674, in load_scalar_attributes
+    result = load_on_ident(
+        session,
+    ...<4 lines>...
+        no_autoflush=no_autoflush,
+    )
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 510, in load_on_ident
+    return load_on_pk_identity(
+        session,
+    ...<11 lines>...
+        is_user_refresh=is_user_refresh,
+    )
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 695, in load_on_pk_identity
+    session.execute(
+    ~~~~~~~~~~~~~~~^
+        q,
+        ^^
+    ...<2 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 101, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 971, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+    ...<6 lines>...
+    )
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO records (serial_num, uuid, cup_id, store_id, borrow_store_id, borrow_time, return_store_id, return_time, due_date, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: [('bde66356-4e0e-437f-8906-904d618e8ce7', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'CUP_9AAB8324', None, 'S007', '2026-05-10 02:58:28.440203', None, None, '2026-05-13 10:58:28.440215', 'ongoing'), ('8aab648d-797c-4991-9a6b-207ed1fbdc94', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'CUP_DC082BAB', None, 'S012', '2026-05-10 03:58:28.440349', None, None, '2026-05-13 10:58:28.440354', 'ongoing'), ('70e3f236-8a6a-43f5-8032-07a585f0e32d', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'EC-NEW-872B27', None, 'S009', '2026-05-04 10:58:28.440404', 'S010', '2026-05-06 10:58:28.440404', None, 'returned'), ('6bda0ede-1703-4dee-a237-340f6471b41b', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'EC-NEW-E93286', None, 'S006', '2026-05-01 10:58:28.440455', 'S015', '2026-05-02 10:58:28.440455', None, 'returned'), ('e18de609-9224-412e-92b2-d368749705a8', '2113999b-94a3-4dff-aaf0-1062ac73fb4a', 'EC-NEW-A0CBB5', None, 'S012', '2026-04-30 10:58:28.440506', 'S005', '2026-05-02 10:58:28.440506', None, 'returned')]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+
+--- 2026-05-10 10:58:47.006737 ---
+註冊發生嚴重錯誤: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO records (serial_num, uuid, cup_id, store_id, borrow_store_id, borrow_time, return_store_id, return_time, due_date, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: [('db080b05-b665-4931-a76f-9abd8dc9c411', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'CUP_9AAB8324', None, 'S005', '2026-05-09 12:58:47.000844', None, None, '2026-05-13 10:58:47.000851', 'ongoing'), ('30c58622-5fad-468e-b6a9-a23e1095e79f', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'CUP_DC082BAB', None, 'S007', '2026-05-10 01:58:47.000955', None, None, '2026-05-13 10:58:47.000958', 'ongoing'), ('328c1d33-9dac-4a7a-8c3c-2abc0c94357d', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'EC-NEW-5A6AD4', None, 'S012', '2026-05-02 10:58:47.001002', 'S013', '2026-05-03 10:58:47.001002', None, 'returned'), ('e8363085-2117-4d3c-b907-67ab33671a02', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'EC-NEW-B8A72A', None, 'S008', '2026-05-01 10:58:47.001049', 'S010', '2026-05-02 10:58:47.001049', None, 'returned'), ('0c535870-d111-4e74-8c7d-28a8cf0e1c16', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'EC-NEW-4D99F0', None, 'S010', '2026-04-30 10:58:47.001090', 'S005', '2026-05-01 10:58:47.001090', None, 'returned')]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+Traceback (most recent call last):
+  File "C:\Users\hsieh\Desktop\test_web_server\server\routers\auth.py", line 98, in register
+    access_token = create_user_token(user.uuid)
+                                     ^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 569, in __get__
+    return self.impl.get(state, dict_)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 1096, in get
+    value = self._fire_loader_callables(state, key, passive)
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 1126, in _fire_loader_callables
+    return state._load_expired(state, passive)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py", line 828, in _load_expired
+    self.manager.expired_attribute_loader(self, toload, passive)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 1674, in load_scalar_attributes
+    result = load_on_ident(
+        session,
+    ...<4 lines>...
+        no_autoflush=no_autoflush,
+    )
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 510, in load_on_ident
+    return load_on_pk_identity(
+        session,
+    ...<11 lines>...
+        is_user_refresh=is_user_refresh,
+    )
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 695, in load_on_pk_identity
+    session.execute(
+    ~~~~~~~~~~~~~~~^
+        q,
+        ^^
+    ...<2 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 101, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hsieh\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 971, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+    ...<6 lines>...
+    )
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO records (serial_num, uuid, cup_id, store_id, borrow_store_id, borrow_time, return_store_id, return_time, due_date, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: [('db080b05-b665-4931-a76f-9abd8dc9c411', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'CUP_9AAB8324', None, 'S005', '2026-05-09 12:58:47.000844', None, None, '2026-05-13 10:58:47.000851', 'ongoing'), ('30c58622-5fad-468e-b6a9-a23e1095e79f', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'CUP_DC082BAB', None, 'S007', '2026-05-10 01:58:47.000955', None, None, '2026-05-13 10:58:47.000958', 'ongoing'), ('328c1d33-9dac-4a7a-8c3c-2abc0c94357d', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'EC-NEW-5A6AD4', None, 'S012', '2026-05-02 10:58:47.001002', 'S013', '2026-05-03 10:58:47.001002', None, 'returned'), ('e8363085-2117-4d3c-b907-67ab33671a02', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'EC-NEW-B8A72A', None, 'S008', '2026-05-01 10:58:47.001049', 'S010', '2026-05-02 10:58:47.001049', None, 'returned'), ('0c535870-d111-4e74-8c7d-28a8cf0e1c16', '8573a506-a98b-42eb-a959-e7c4d71f802c', 'EC-NEW-4D99F0', None, 'S010', '2026-04-30 10:58:47.001090', 'S005', '2026-05-01 10:58:47.001090', None, 'returned')]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+

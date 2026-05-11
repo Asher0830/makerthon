@@ -540,10 +540,10 @@ export default function Dashboard({ user, onLogout }) {
               </>
             )}
 
-            {/* Green Express Bounty Section */}
+            {/* Bounty Task Section */}
             <h2 style={{ fontSize: '1.25rem', marginTop: '32px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Truck size={20} color="var(--primary)" />
-              綠色快遞懸賞
+              配送任務懸賞
             </h2>
 
             <div

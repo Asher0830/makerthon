@@ -158,11 +158,13 @@ def _handle_borrow(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
         return {"status": "error", "message": f"找不到使用者: {user_uuid}"}
 
     # 2. 檢查使用者狀態
-    if user.is_suspended == 1:
+    is_suspended = user.is_suspended or 0
+    if is_suspended == 1:
         return {"status": "error", "message": "帳號已被停權，請先歸還逾期杯子或聯繫客服"}
 
     # 檢查借杯上限
-    if user.current_borrow_count >= MAX_BORROW_LIMIT:
+    borrow_count = user.current_borrow_count or 0
+    if borrow_count >= MAX_BORROW_LIMIT:
         return {"status": "error", "message": f"已達借杯上限 ({MAX_BORROW_LIMIT})"}
 
     # 3. 檢查杯子
@@ -193,13 +195,15 @@ def _handle_borrow(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
     db.add(record)
 
     # 6. 更新使用者計數
-    user.current_borrow_count += 1
-    user.total_borrow_count += 1
+    user.current_borrow_count = (user.current_borrow_count or 0) + 1
+    user.total_borrow_count = (user.total_borrow_count or 0) + 1
 
     # 7. 更新店家庫存
     store = db.query(Store).filter(Store.store_id == store_code).first()
-    if store and store.cups_in_stock > 0:
-        store.cups_in_stock -= 1
+    if store:
+        stock = store.cups_in_stock or 0
+        if stock > 0:
+            store.cups_in_stock = stock - 1
 
     # 8. 記錄日誌
     log_event(db, "BORROW", f"借出杯子: {cup_id}", f"使用者: {user_uuid}, 門市: {store_code}", operator_id=user_uuid)
@@ -219,7 +223,12 @@ def _handle_return(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
     """處理歸還邏輯。"""
     now = datetime.now(TAIPEI_TZ)
 
-    # 1. 找到該杯子目前進行中的借出紀錄 (不強求傳入的 user_uuid 匹配，以杯子狀態為準)
+    # 1. 檢查杯子是否存在
+    cup = db.query(Cup).filter(Cup.cup_id == cup_id).first()
+    if not cup:
+        return {"status": "error", "message": f"找不到杯子: {cup_id}"}
+    
+    # 2. 找到該杯子目前進行中的借出紀錄 (不管杯子狀態，以紀錄為準)
     record = (
         db.query(Record)
         .filter(
@@ -228,35 +237,49 @@ def _handle_return(db: Session, cup_id: str, user_uuid: str, store_code: str) ->
         )
         .first()
     )
-    if not record:
-        return {"status": "error", "message": f"找不到杯子 [{cup_id}] 的進行中借用紀錄"}
     
-    target_user_uuid = record.uuid # 從紀錄中取得實際借用者 ID
+    # 如果杯子已經在庫，且沒有進行中紀錄，才是真的重複感應
+    if cup.state == "in_stock" and not record:
+        return {
+            "status": "warning", 
+            "message": "此杯子已在店內，且無借用紀錄",
+            "action": "already_returned",
+            "cup_id": cup_id
+        }
 
-    # 2. 更新紀錄
-    record.return_store_id = store_code
-    record.return_time = now
-    record.state = "returned"
-
-    # 3. 更新杯子狀態
-    cup = db.query(Cup).filter(Cup.cup_id == cup_id).first()
-    if cup:
-        cup.state = "in_stock"
-        cup.holder_uuid = None
-        cup.store_id = store_code
+    # 3. 如果有紀錄，就結案
+    if record:
+        target_user_uuid = record.uuid
+        record.return_store_id = store_code
+        record.return_time = now
+        record.state = "returned"
+        
+        # 更新使用者計數與點數
+        user = db.query(User).filter(User.uuid == target_user_uuid).first()
+        if user:
+            borrow_count = user.current_borrow_count or 0
+            if borrow_count > 0:
+                user.current_borrow_count = borrow_count - 1
+            user.points = (user.points or 0) + 10
+    
+    # 4. 強制更新杯子狀態為在庫
+    cup.state = "in_stock"
+    cup.holder_uuid = None
+    cup.store_id = store_code
 
     # 4. 更新使用者計數與點數
     user = db.query(User).filter(User.uuid == target_user_uuid).first()
     if user:
-        if user.current_borrow_count > 0:
-            user.current_borrow_count -= 1
+        borrow_count = user.current_borrow_count or 0
+        if borrow_count > 0:
+            user.current_borrow_count = borrow_count - 1
         # 獎勵點數：歸還成功給 10 點
-        user.points += 10
+        user.points = (user.points or 0) + 10
 
     # 5. 更新店家庫存
     store = db.query(Store).filter(Store.store_id == store_code).first()
     if store:
-        store.cups_in_stock += 1
+        store.cups_in_stock = (store.cups_in_stock or 0) + 1
 
     # 6. 記錄日誌
     log_event(db, "RETURN", f"歸還杯子: {cup_id}", f"使用者: {target_user_uuid}, 門市: {store_code}", operator_id=store_code)

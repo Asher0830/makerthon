@@ -31,6 +31,7 @@ class UserRegisterResponse(BaseModel):
     uuid: str
     email: str
     name: str
+    is_new_user: bool = False
 
 
 # ── User ──────────────────────────────────────────────────────────────────────

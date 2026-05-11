@@ -122,6 +122,11 @@ const translations = {
     spirit_of_trees: '樹靈守護',
     earth_guardian: '大地守護者',
     total_borrow_count: '累計環保次數',
+    
+    // Welcome Gift
+    welcome_gift_title: '歡迎使用eco-cup',
+    welcome_gift_msg: '測試期間，我們已為您的帳戶注入專屬獎勵，讓您的環保之旅有個完美的開始：',
+    start_journey: '開啟我的環保之旅',
   },
 
   'en': {
@@ -245,6 +250,11 @@ const translations = {
     spirit_of_trees: 'Tree Spirits',
     earth_guardian: 'Earth Guardian',
     total_borrow_count: 'Total Returns',
+
+    // Welcome Gift
+    welcome_gift_title: 'Welcome to eco-cup',
+    welcome_gift_msg: 'During the test period, we have injected exclusive rewards into your account to give your green journey a perfect start:',
+    start_journey: 'Start My Journey',
   }
 };
 
