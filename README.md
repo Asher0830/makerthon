@@ -1,91 +1,118 @@
-# 🌿 Green Express (Eco-Cup) Management System - v5.0
+### README.md
 
-這是一個專為減塑環保設計的「循環杯借用管理系統」。結合了 **FastAPI 後端**、**React 行動端網頁** 以及 **ESP32 硬體掃描器**，實現自動化的借還杯體驗。
+請將以下內容替換為你根目錄的 `README.md`，這份文件整合了系統設計、API 規範、硬體規格與部署指南，結構更符合開源專案與企業內部協作的標準。
 
----
+```markdown
+# 🌿 Green Express (Eco-Cup) 循環杯物聯網管理系統
 
-## 🌟 核心功能
-### 👥 用戶端 (Mobile Web)
-- **快速註冊/登入**：支援 Email 驗證與 JWT 安全認證。
-- **新手大禮包**：註冊即自動贈送 1,000 小樹點與 5 筆隨機歷史紀錄（2 筆借用中、3 筆已歸還）。
-- **借杯儀表板**：實時查看手邊持有的杯子、到期日與累積點數。
-- **樹靈養成遊戲**：消耗點數孵化「樹靈」，增加用戶黏著度。
+Green Express 是一個專為減塑場域設計的循環杯借還系統。透過整合 **FastAPI (後端)**、**React (行動端網頁)** 與 **ESP32 (物聯網掃描器)**，提供用戶「掃碼即借、放杯即還」的無縫體驗，並為店家提供即時的庫存監控後台。
 
-### 🏪 店家管理後台 (Store Admin)
-- **實時庫存監控**：掌握店內可用杯子數量。
-- **借還數據分析**：查看每日借出與歸還統計。
-- **逾期追蹤**：監控從本店借出但未如期歸還的杯子。
+## 🏗️ 系統架構
 
-### 🤖 硬體端 (ESP32 Scanner)
-- **自動化借還**：透過 WebSocket 與伺服器連線，實現「嗶一聲」即完成借還手續。
-- **離線自動重連**：強大的心跳包機制，確保網路不穩時能自動恢復連線。
+本系統由三大核心模組組成：
 
----
+1. **Frontend (用戶端/店家後台)**
+   - 技術棧：React + Vite + TailwindCSS / Vanilla CSS
+   - 功能：JWT 身分認證、QR Code 借杯、個人持有杯數管理、點數與「樹靈養成」遊戲化模組、店家庫存儀表板。
+2. **Backend (核心 API 伺服器)**
+   - 技術棧：Python 3.x + FastAPI + SQLAlchemy + SQLite
+   - 功能：RESTful API 服務、WebSocket 長連線管理、Cron Job 排程逾期檢測、Email 逾期提醒發送。
+3. **Hardware (機台掃描器)**
+   - 技術棧：ESP32 + Arduino C++ + RFID 模組
+   - 功能：透過 WebSocket 與伺服器維持雙向通訊，解析 RFID 杯子碼，執行借出/歸還狀態上報。
 
-## 🛠️ 技術架構
-- **Backend**: FastAPI (Python 3.14+), SQLAlchemy (ORM), SQLite (Database).
-- **Frontend**: Vite + React, Lucide Icons, Vanilla CSS (Premium Glassmorphism Design).
-- **Hardware**: ESP32, Arduino C++, WebSockets (SSL support).
-- **Security**: Bcrypt password hashing, JWT Authentication.
+## 📂 專案目錄結構
 
----
+```text
+makerthon-main/
+├── web/eco-cup-app/       # Frontend：React 行動端與後台網頁
+├── server/                # Backend：FastAPI 伺服器
+│   ├── routers/           # API 路由 (auth, user, store, admin, qrcode)
+│   ├── websocket/         # WebSocket 連線池與掃描器邏輯
+│   ├── tasks/             # 排程任務 (Email 逾期提醒)
+│   ├── models.py          # SQLAlchemy ORM 模型
+│   ├── schemas.py         # Pydantic 資料驗證模型
+│   └── main.py            # FastAPI 程式進入點
+├── esp32/                 # Hardware：ESP32 韌體原始碼
+└── README.md              # 專案說明文件
 
-## 📊 資料庫表結構 (Schema)
-系統主要包含四張核心表：
-1. `users`: 儲存用戶資料、點數、借杯計數與狀態。
-2. `stores`: 儲存門市資訊、庫存數量、經緯度。
-3. `cups`: 儲存杯子 ID、目前所在門市、目前持有者。
-4. `records`: 儲存每一筆借還紀錄的流水帳（含借出時間、歸還時間、押金狀態）。
-
----
-
-## 🔗 主要 API 路由
-| 路由 | 方法 | 描述 |
-| :--- | :--- | :--- |
-| `/api/auth/register` | `POST` | 用戶註冊 (觸發新手大禮包) |
-| `/api/auth/login` | `POST` | 用戶登入 |
-| `/api/user/stats` | `GET` | 獲取用戶點數與借用統計 |
-| `/api/user/cups` | `GET` | 列出目前持有中的杯子 |
-| `/api/store/dashboard` | `GET` | 店家後台首頁數據 |
-| `/ws/scanner/{id}` | `WS` | 掃描器 WebSocket 連線 |
-
----
-
-## 📦 快速開始與環境變數
-
-### 1. 後端環境設定
-在 `server` 目錄下：
-```bash
-# 安裝依賴
-pip install -r requirements.txt
-
-# 啟動伺服器
-python main.py
 ```
-- **開發者模式**：預設開啟 `reload=True`。
-- **超級管理員**：`admin / admin1234`。
 
-### 2. 前端開發
-在 `web/eco-cup-app` 目錄下：
+## 🚀 快速啟動指南
+
+### 1. 啟動 Backend (API 伺服器)
+
+請確保已安裝 Python 3.10+。
+
 ```bash
+cd server
+pip install -r requirements.txt
+python main.py
+
+```
+
+> 預設運行於 `http://localhost:8000`。
+> API 互動式文件 (Swagger UI) 位於：`http://localhost:8000/docs`
+
+### 2. 啟動 Frontend (網頁端)
+
+請確保已安裝 Node.js 18+。
+
+```bash
+cd web/eco-cup-app
 npm install
 npm run dev
+
 ```
 
-### 3. 硬體燒錄
-- 硬體清單：ESP32-DevKitC, QR Code 掃描模組 (TTL)。
-- 連接方式：掃描器 RX/TX 接 ESP32 UART2 (GPIO 16/17)。
-- 修改 `esp32.ino` 中的 `WS_URL` 為您的伺服器網址。
+> 預設運行於 `http://localhost:5173`。
+
+### 3. ESP32 硬體燒錄
+
+1. 透過 Arduino IDE 開啟 `esp32/esp32.ino`。
+2. 安裝依賴函式庫：`ArduinoJson`, `WebSocketsClient`。
+3. 修改程式碼中的 Wi-Fi SSID、密碼，以及 `WS_URL`（指向伺服器 IP，例如 `ws://192.168.X.X:8000/ws/scanner/ESP32_001`）。
+4. 燒錄至 ESP32 開發板。
+
+## 📡 通訊協定與 API 規範
+
+### ESP32 WebSocket 協定
+
+* **連線端點**: `ws://<SERVER_IP>:8000/ws/scanner/{scanner_id}`
+* **借杯觸發 (Server -> ESP32)**:
+```json
+{ "action": "bind_uuid", "uuid": "user-uuid", "store_id": "S001" }
+
+```
+
+
+* **狀態上報 (ESP32 -> Server)**:
+傳送字串格式：`{cup_id},{uuid},{status_code}`
+* `status_code` 前兩碼：`11` (借出), `00` (歸還)
+* `status_code` 後四碼：店號
+* 範例：`CUP_ABC123,user-uuid,11S001`
+
+
+
+### 核心 REST API 路由
+
+| 路由 | 方法 | 權限 | 描述 |
+| --- | --- | --- | --- |
+| `/api/auth/google` | `POST` | 公開 | Google OAuth 登入並核發 JWT |
+| `/api/user/cups` | `GET` | User JWT | 獲取當前持有的環保杯與剩餘天數 |
+| `/api/qrcode/scan` | `POST` | User JWT | 掃描機台 QR Code 並推送 UUID 至 ESP32 |
+| `/api/store/dashboard` | `GET` | Store JWT | 門市庫存與今日借還統計 |
+| `/api/admin/stats/global` | `GET` | Admin JWT | 系統全域統計與逾期追蹤 |
+
+## 🛡️ 注意事項與最佳實踐
+
+1. **資料庫遷移：** 預設採用 SQLite 僅供開發與展示使用。投入正式生產環境前，請修改 `server/config.py` 中的 `DATABASE_URL` 遷移至 PostgreSQL 以確保資料一致性。
+2. **斷線重連機制：** 由於硬體設備依賴 WebSocket，ESP32 韌體內已實作心跳包 (Ping/Pong) 檢測與自動重連邏輯，請勿輕易移除。
 
 ---
 
-## 🛡️ v5.0 安全與性能優化
-- **WebSocket 心跳協定**：伺服器設有 20 秒 Ping/Pong 逾期機制。
-- **外鍵約束保護**：確保所有借用紀錄必須對應有效的杯子與門市 ID。
-- **點數防作弊**：後端嚴格校驗每個帳號的點數流水。
+*文件版本：v5.1 | 專案維護團隊：Eco-Cup Makerthon Team*
 
----
-## 📄 授權說明
-本專案為 Eco-Cup 團隊開發，僅供測試與教學使用。
+```
 
-*Last Updated: 2026-05-11 by Antigravity AI*
+```
