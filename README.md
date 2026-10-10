@@ -1,7 +1,3 @@
-### README.md
-
-請將以下內容替換為你根目錄的 `README.md`，這份文件整合了系統設計、API 規範、硬體規格與部署指南，結構更符合開源專案與企業內部協作的標準。
-
 ```markdown
 # 🌿 Green Express (Eco-Cup) 循環杯物聯網管理系統
 
