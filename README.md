@@ -1,4 +1,4 @@
-```markdown
+
 # 🌿 Green Express (Eco-Cup) 循環杯物聯網管理系統
 
 Green Express 是一個專為減塑場域設計的循環杯借還系統。透過整合 **FastAPI (後端)**、**React (行動端網頁)** 與 **ESP32 (物聯網掃描器)**，提供用戶「掃碼即借、放杯即還」的無縫體驗，並為店家提供即時的庫存監控後台。
@@ -19,7 +19,7 @@ Green Express 是一個專為減塑場域設計的循環杯借還系統。透過
 
 ## 📂 專案目錄結構
 
-```text
+text
 makerthon-main/
 ├── web/eco-cup-app/       # Frontend：React 行動端與後台網頁
 ├── server/                # Backend：FastAPI 伺服器
@@ -32,7 +32,7 @@ makerthon-main/
 ├── esp32/                 # Hardware：ESP32 韌體原始碼
 └── README.md              # 專案說明文件
 
-```
+
 
 ## 🚀 快速啟動指南
 
